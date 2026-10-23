@@ -1,0 +1,7 @@
+.env
+venv/
+__pycache__/
+.vercel/
+*.pyc
+COLAR_NO_VERCEL.txt
+notas.txt
