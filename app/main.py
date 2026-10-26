@@ -603,7 +603,8 @@ def resumo(request: Request):
         r["ultima_visita"] = r["ultima_visita"].isoformat() if r["ultima_visita"] else None
         _d = _prim.get((r["tecnico"], r.get("projeto")))   # 1ª visita NO PROJETO mostrado para o técnico
         r["primeira_visita"] = _d.isoformat() if _d else None
-        r["meses_projeto"] = round(max(0, (ate - _d).days) / 30.44, 1) if _d else None   # da 1ª visita até o fim do período filtrado
+        # meses de calendário, do mês da 1ª visita (conta como 1º mês) até o mês do fim do período filtrado; máx. 24
+        r["meses_projeto"] = min(24, max(1, (ate.year - _d.year) * 12 + (ate.month - _d.month) + 1)) if _d else None
     return {"periodo": {"de": de.isoformat(), "ate": ate.isoformat(), "dias": dias,
                         "anterior_de": ant_de.isoformat(), "anterior_ate": ant_ate.isoformat()},
             "cards": cards, "anterior": anterior, "por_atividade": por_atividade, "rel_atv": rel_atv, "por_projeto": por_projeto,
