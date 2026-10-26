@@ -9,6 +9,10 @@ CREATE MATERIALIZED VIEW public.mv_visitas AS SELECT * FROM public.vw_visitas;
 CREATE INDEX mv_visitas_dt   ON public.mv_visitas (dt_visita);
 CREATE INDEX mv_visitas_vis  ON public.mv_visitas (id_visita);
 CREATE INDEX mv_visitas_prop ON public.mv_visitas (id_propriedade, dt_visita DESC);
+CREATE INDEX mv_visitas_tec  ON public.mv_visitas (tecnico, dt_visita DESC);
+CREATE INDEX mv_visitas_sup  ON public.mv_visitas (supervisor, dt_visita);
+CREATE INDEX mv_visitas_mun  ON public.mv_visitas (municipio, dt_visita);
+CREATE INDEX mv_visitas_proj ON public.mv_visitas (projeto, dt_visita);
 ANALYZE public.mv_visitas;
 
 DO $$ BEGIN

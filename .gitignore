@@ -14,3 +14,4 @@ sql/diagnostico_gerlan.sql
 sql/diagnostico_giovani.sql
 testar_supervisor.py
 sql/diagnostico_douglas.sql
+medir_lentidao.py

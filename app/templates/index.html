@@ -509,6 +509,7 @@ let atuSeq=0;
 async function atualiza(){
   if(!$('de').value||!$('ate').value)return;
   const meu=++atuSeq;erro('');$('carr').style.display='grid';
+  carregaTecIn();   // em paralelo com o resumo (não espera)
   try{
     await carregaFiltros();
     dados=await api('/api/resumo?'+qs());const d=dados,c=d.cards,ev=d.evolucao.pontos,dia=d.evolucao.por_dia;
@@ -529,7 +530,7 @@ async function atualiza(){
     const pa=d.por_atividade.slice().sort((a,b)=>b.visitas-a.visitas);
     barraH('gAtiv',pa,'atividade','visitas','Visitas');barraH('gSup',d.por_supervisor,'supervisor','visitas','Visitas');
     barraH('gTec',d.por_tecnico.slice(0,15),'tecnico','visitas','Visitas');barraH('gMun',d.por_municipio.slice(0,15),'municipio','visitas','Visitas');
-    destaques(d);listas();carteira(d);inicio(d);desativacoes(d);assistDes(d);perfilProd();mapaCeara();carregaTecIn();
+    destaques(d);listas();carteira(d);inicio(d);desativacoes(d);assistDes(d);perfilProd();mapaCeara();
     $('rod').innerHTML=`Fonte: SisATeG (acompanhamento mensal de visitas, sem visitas excluídas e sem o projeto Treinamento SP). Total de visitas padrão = visitas que não são coleta de dados. Propriedades ativas/inativas: situação oficial atual de cada propriedade visitada no período. Orientações: as registradas nas visitas do período, com a situação atual. Dados até ${br(window.__max)}.`;
   }catch(e){if(meu===atuSeq)erro(e.message)}finally{if(meu===atuSeq)$('carr').style.display='none'}
 }

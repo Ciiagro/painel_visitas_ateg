@@ -351,14 +351,18 @@ def tecnicos_inativos(request: Request, dias: int = 30, seguir: int = 1):
     f = _filtros_da_requisicao(request)[0] if seguir else {}
     w, p = _where(f)  # sem datas: o período não se aplica
     p["dias"] = dias
+    # Primeiro acha só os técnicos parados (poucos); só então busca os detalhes deles (bem mais leve que varrer todos).
     sql = f"""WITH ref AS (SELECT MAX(dt_visita) AS d FROM {TABLE}),
-        u AS (SELECT DISTINCT ON (tecnico) * FROM {TABLE} WHERE tecnico IS NOT NULL ORDER BY tecnico, dt_visita DESC, id_visita DESC),
+        parados AS (SELECT tecnico FROM {TABLE} WHERE tecnico IS NOT NULL GROUP BY tecnico
+                    HAVING MAX(dt_visita) < (SELECT d FROM ref) - CAST(:dias AS integer)),
+        u AS (SELECT DISTINCT ON (tecnico) * FROM {TABLE} WHERE tecnico IN (SELECT tecnico FROM parados)
+              ORDER BY tecnico, dt_visita DESC, id_visita DESC),
         tot AS (SELECT tecnico AS tec_t, COUNT(DISTINCT id_visita) AS visitas, MIN(dt_visita) AS primeira_visita
-                FROM {TABLE} WHERE tecnico IS NOT NULL GROUP BY 1)
+                FROM {TABLE} WHERE tecnico IN (SELECT tecnico FROM parados) GROUP BY 1)
         SELECT u.tecnico, u.supervisor, u.dt_visita AS ultima_visita, (ref.d - u.dt_visita) AS dias_sem_visita,
                u.municipio, u.projeto, u.atividade, tot.visitas, tot.primeira_visita
         FROM u JOIN tot ON tot.tec_t = u.tecnico CROSS JOIN ref
-        WHERE {w} AND (ref.d - u.dt_visita) > :dias
+        WHERE {w}
         ORDER BY u.dt_visita DESC, u.tecnico"""
     with engine.connect() as con:
         rows = _linhas(con, sql, p)
@@ -414,6 +418,19 @@ def conferencia_visitas(request: Request):
                    valida, coleta_dados
             FROM {TABLE} WHERE dt_visita >= :de AND dt_visita <= :ate ORDER BY id_visita"""), {"de": de, "ate": ate}).all()
     return {"visitas": [[int(r[0]), r[1].isoformat(), r[2], r[3], r[4], 1 if r[5] else 0, 1 if r[6] else 0] for r in rows]}
+
+
+_PRIM_CACHE = {"t": 0.0, "v": {}}
+
+
+def _primeira_visita_por_tecnico():
+    """Calculada uma vez e guardada por 10 min (não muda a cada filtro)."""
+    if _time.time() - _PRIM_CACHE["t"] > 600 or not _PRIM_CACHE["v"]:
+        with engine.connect() as con:
+            _PRIM_CACHE["v"] = {r[0]: r[1] for r in con.execute(text(
+                f"SELECT tecnico, MIN(dt_visita) FROM {TABLE} WHERE tecnico IS NOT NULL GROUP BY 1")).all()}
+        _PRIM_CACHE["t"] = _time.time()
+    return _PRIM_CACHE["v"]
 
 
 @app.get("/api/resumo")
@@ -578,8 +595,7 @@ def resumo(request: Request):
             sobem = sorted([r for r in rows if r["delta"] > 0], key=lambda r: -r["delta"])[:5]
             caem = sorted([r for r in rows if r["delta"] < 0], key=lambda r: r["delta"])[:5]
             dest[chave] = {"sobem": sobem, "caem": caem}
-    with engine.connect() as _con:   # primeira visita de cada técnico em TODA a base (para o "Tempo no projeto")
-        _prim = {r[0]: r[1] for r in _con.execute(text(f"SELECT tecnico, MIN(dt_visita) FROM {TABLE} WHERE tecnico IS NOT NULL GROUP BY 1")).all()}
+    _prim = _primeira_visita_por_tecnico()   # primeira visita de cada técnico em TODA a base (para o "Tempo no projeto")
     for r in por_tecnico:
         r["ultima_visita"] = r["ultima_visita"].isoformat() if r["ultima_visita"] else None
         _d = _prim.get(r["tecnico"])
