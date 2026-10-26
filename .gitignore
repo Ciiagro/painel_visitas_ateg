@@ -12,3 +12,4 @@ sql/diagnostico_supervisores.sql
 data-*.csv
 sql/diagnostico_gerlan.sql
 sql/diagnostico_giovani.sql
+testar_supervisor.py
