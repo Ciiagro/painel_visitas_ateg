@@ -119,9 +119,9 @@ def mapa_config():
 
 
 # Aba "Conferência" (compara a planilha do SisATeG com o painel). Ferramenta de trabalho: fica LIGADA só
-# quando o painel roda no seu computador e DESLIGADA na Vercel (versão pública). Para forçar: CONFERENCIA=1/0.
+# LIGADA também na Vercel. Para desligar: CONFERENCIA=0.
 _conf = os.environ.get("CONFERENCIA")
-CONFERENCIA = (_conf.strip().lower() in ("1", "true", "sim")) if _conf is not None else not os.environ.get("VERCEL")
+CONFERENCIA = (_conf.strip().lower() in ("1", "true", "sim")) if _conf is not None else True
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -29,11 +29,10 @@ Testado com a planilha de 2026 (01 a 08/10/2026): 1.912 visitas, 1.850 proprieda
 ## Aba "Conferência" (só no seu computador)
 Compara a lista de visitas baixada do SisATeG (.xlsx) com os dados da API que o painel mostra e lista só as diferenças:
 só no SisATeG, só no painel, validade diferente, data diferente e coleta de dados diferente (CSV com todas).
-A planilha é lida no navegador e não é enviada a nenhum servidor. A aba aparece quando o painel roda localmente e fica
-desligada na Vercel (versão pública). Para forçar, use a variável CONFERENCIA=1 (liga) ou CONFERENCIA=0 (desliga).
+A planilha é lida no navegador e não é enviada a nenhum servidor. A aba fica ligada, inclusive na Vercel. Para desligar, use a variável CONFERENCIA=0.
 
 
 ## Publicação (Vercel)
 Variáveis de ambiente na Vercel: `REMOTE_DB_USER`, `REMOTE_DB_PASS`, `REMOTE_DB_HOST`, `REMOTE_DB_PORT`, `REMOTE_DB_NAME` (use o usuário somente-leitura `painel_leitura`, ver `sql/usuario_leitura.sql`).
-Na versão pública ficam desligados automaticamente: aba Conferência e o mapa de propriedades (localização de propriedades).
+Na versão pública fica desligado automaticamente o mapa de propriedades (localização de propriedades). A aba Conferência fica ligada (desligue com CONFERENCIA=0).
 Velocidade: rodar `sql/vw_visitas.sql` e depois `sql/mv_visitas.sql` uma vez; o `atualizar_visitas.bat` atualiza a tabela pronta (`mv_visitas`) a cada envio.
