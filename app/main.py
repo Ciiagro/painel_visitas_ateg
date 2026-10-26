@@ -577,8 +577,13 @@ def resumo(request: Request):
             sobem = sorted([r for r in rows if r["delta"] > 0], key=lambda r: -r["delta"])[:5]
             caem = sorted([r for r in rows if r["delta"] < 0], key=lambda r: r["delta"])[:5]
             dest[chave] = {"sobem": sobem, "caem": caem}
+    with engine.connect() as _con:   # primeira visita de cada técnico em TODA a base (para o "Tempo no projeto")
+        _prim = {r[0]: r[1] for r in _con.execute(text(f"SELECT tecnico, MIN(dt_visita) FROM {TABLE} WHERE tecnico IS NOT NULL GROUP BY 1")).all()}
     for r in por_tecnico:
         r["ultima_visita"] = r["ultima_visita"].isoformat() if r["ultima_visita"] else None
+        _d = _prim.get(r["tecnico"])
+        r["primeira_visita"] = _d.isoformat() if _d else None
+        r["meses_projeto"] = round(max(0, (ate - _d).days) / 30.44, 1) if _d else None   # da 1ª visita até o fim do período filtrado
     return {"periodo": {"de": de.isoformat(), "ate": ate.isoformat(), "dias": dias,
                         "anterior_de": ant_de.isoformat(), "anterior_ate": ant_ate.isoformat()},
             "cards": cards, "anterior": anterior, "por_atividade": por_atividade, "rel_atv": rel_atv, "por_projeto": por_projeto,

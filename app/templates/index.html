@@ -79,6 +79,7 @@ select:hover,input:hover{border-color:#bfd9c8}select.on{border-color:var(--verde
 .g-topo{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.g-tit{flex:1;min-width:150px}.graf h2{margin:0;font-size:16.5px;font-weight:700}.formula{margin:2px 0 0;font-size:12px;color:var(--mut)}
 .pill{text-align:center;padding:7px 14px;border-radius:10px;min-width:110px;background:color-mix(in srgb,var(--cor) 11%,white);color:var(--cor)}.pill b{display:block;font-size:15px;white-space:nowrap}.pill small{font-size:10.5px;opacity:.85}
 .cv{position:relative;height:300px;margin-top:8px}.cv.alto{height:470px}
+.tw td small.sub{display:block;font-size:11px;color:#6b7a70;margin-top:1px}
 .tw{overflow:auto;max-height:470px;border:1px solid var(--linha);border-radius:10px;margin-top:8px}
 table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{padding:7px 10px;border-bottom:1px solid var(--linha);text-align:right;white-space:nowrap}
 th{position:sticky;top:0;background:var(--suave);color:var(--verde-esc);font-size:12.5px;cursor:pointer;user-select:none;z-index:1}
@@ -222,7 +223,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
           <input type="search" id="tiBusca" placeholder="Buscar técnico ou supervisor..." style="min-width:200px;padding:7px 10px">
           <button class="btn sec" id="tiCsv">CSV</button></div></div>
       <div class="tw" style="max-height:470px"><table id="tTecIn"></table></div>
-      <p class="formula" style="margin:8px 4px 0">Tempo de atuação = da primeira à última visita (a base começa em jun/2024). Mostra a última visita e o último supervisor de cada técnico. "Seguir os filtros" aplica supervisor, região, município etc. à última visita do técnico (o período De/Até não vale aqui). Desmarque para ver todos os técnicos sem visita recente.</p>
+      <p class="formula" style="margin:8px 4px 0">Tempo no projeto = da primeira à última visita (a base começa em jun/2024). Mostra a última visita e o último supervisor de cada técnico. "Seguir os filtros" aplica supervisor, região, município etc. à última visita do técnico (o período De/Até não vale aqui). Desmarque para ver todos os técnicos sem visita recente.</p>
     </div></section>
   <section class="painel" id="p-mun">
     <div class="graf" id="mapaBox" style="margin-bottom:16px"><div class="g-topo"><span class="ico g" style="--cor:#0b7a80" data-i="pin"></span><div class="g-tit"><h2>Mapa do Ceará</h2><p class="formula" id="mapaSub"></p></div>
@@ -334,7 +335,7 @@ const ordena=(rows,k,d)=>[...rows].sort((x,y)=>{const a=x[k]??'',b=y[k]??'';retu
 function tabela(id,cols,rows,chave,dest){
   const [ok,od]=ordem[chave],max=Math.max(1,...rows.map(r=>r[dest]||0));
   $(id).innerHTML='<thead><tr>'+cols.map(([k,t])=>`<th data-k="${k}" class="${typeof rows[0]?.[k]==='string'&&k!=='pconc'?'l':''}">${t}${ok===k?(od>0?' ▲':' ▼'):''}</th>`).join('')+'</tr></thead><tbody>'+
-   ordena(rows,ok,od).map(r=>'<tr>'+cols.map(([k])=>{let v=r[k];const s=typeof v==='string'&&k!=='pconc';v=typeof v==='number'?fmt(v):(k==='ultima_visita'&&v?br(v):esc(v??''));if(k===dest)v+=`<span class="barra" style="width:${Math.round((r[k]||0)/max*50)}px"></span>`;return`<td class="${s?'l':''}">${v}</td>`}).join('')+'</tr>').join('')+'</tbody>';
+   ordena(rows,ok,od).map(r=>'<tr>'+cols.map(([k])=>{let v=r[k];const s=typeof v==='string'&&k!=='pconc';if(k==='tecnico_sup')v=esc(r.tecnico)+'<br><small class="sub">'+esc(r.supervisor||'(sem supervisor)')+'</small>';else if(k==='meses_projeto')v=v==null?'':emMeses(v*30.44);else v=typeof v==='number'?fmt(v):(k==='ultima_visita'&&v?br(v):esc(v??''));if(k===dest)v+=`<span class="barra" style="width:${Math.round((r[k]||0)/max*50)}px"></span>`;return`<td class="${s?'l':''}">${v}</td>`}).join('')+'</tr>').join('')+'</tbody>';
   $(id).querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;ordem[chave]=[k,ordem[chave][0]===k?-ordem[chave][1]:-1];listas()});
 }
 function supDet(){
@@ -362,7 +363,7 @@ function listas(){
   supDet();
   const b=$('busca').value.toLowerCase(),t=dados.por_tecnico.filter(r=>(r.tecnico+' '+(r.supervisor||'')).toLowerCase().includes(b));
   const temPos=false; // posição geral/nota ficam só na aba Desempenho
-  tabela('tTec',[['tecnico','Técnico'],['supervisor','Supervisor'],...(temPos?[['pos_geral','Posição geral ('+dados.ranking_periodo+')'],['nota_ranking','Nota']]:[]),['propriedades','Propriedades'],['visitas','Visitas'],['coleta_dados','Coleta'],['dias_com_visita','Dias com visita'],['ultima_visita','Última visita']],t,'tec','visitas');
+  tabela('tTec',[['tecnico_sup','Técnico'],['meses_projeto','Tempo no projeto'],['propriedades','Propriedades'],['visitas','Visitas'],['coleta_dados','Coleta'],['dias_com_visita','Dias com visita'],['ultima_visita','Última visita']],t.map(r=>({...r,tecnico_sup:r.tecnico})),'tec','visitas');
   const temReg=(dados.por_regiao||[]).length>0;
   tabela('tMun',[['municipio','Município'],...(temReg?[['regiao','Região'],['sindicato','Sindicato']]:[]),['supervisores','Supervisores'],['tecnicos','Técnicos'],['atividades','Cadeias'],['propriedades','Propriedades'],['visitas','Visitas']],dados.por_municipio,'mun','visitas');
   $('regSindBox').style.display=temReg?'':'none';
@@ -723,11 +724,11 @@ function semVisita(r){return r.dias_sem_visita==null?'':emMeses(r.dias_sem_visit
 function tecInLinhas(){const b=($('tiBusca').value||'').toLowerCase();return TI.filter(r=>!b||((r.tecnico||'')+' '+(r.supervisor||'')).toLowerCase().includes(b))}
 function tecInTabela(){
   const r=tecInLinhas();
-  $('tTecIn').innerHTML='<thead><tr><th class="l">Técnico</th><th>Tempo de atuação</th><th>Primeira visita</th><th>Última visita</th><th>Tempo sem visita</th><th class="l">Último supervisor</th><th class="l">Último município</th><th class="l">Último projeto</th><th class="l">Última atividade</th><th>Total de visitas</th></tr></thead><tbody>'+
-   r.map(x=>`<tr><td class="l">${esc(x.tecnico)}</td><td>${tempoAtu(x)}</td><td>${br(x.primeira_visita)}</td><td>${br(x.ultima_visita)}</td><td>${semVisita(x)}</td><td class="l">${esc(x.supervisor||'(sem supervisor)')}</td><td class="l">${esc(x.municipio||'')}</td><td class="l">${esc(x.projeto||'')}</td><td class="l">${esc(x.atividade||'')}</td><td>${fmt(x.visitas)}</td></tr>`).join('')+'</tbody>';
+  $('tTecIn').innerHTML='<thead><tr><th class="l">Técnico</th><th>Tempo no projeto</th><th>Primeira visita</th><th>Última visita</th><th>Tempo sem visita</th><th class="l">Último município</th><th class="l">Último projeto</th><th class="l">Última atividade</th><th>Total de visitas</th></tr></thead><tbody>'+
+   r.map(x=>`<tr><td class="l">${esc(x.tecnico)}<small class="sub">${esc(x.supervisor||'(sem supervisor)')}</small></td><td>${tempoAtu(x)}</td><td>${br(x.primeira_visita)}</td><td>${br(x.ultima_visita)}</td><td>${semVisita(x)}</td><td class="l">${esc(x.municipio||'')}</td><td class="l">${esc(x.projeto||'')}</td><td class="l">${esc(x.atividade||'')}</td><td>${fmt(x.visitas)}</td></tr>`).join('')+'</tbody>';
 }
 function tecInCsv(){
-  const c=[['tecnico','Técnico'],['tempo','Tempo de atuação'],['primeira_visita','Primeira visita'],['ultima_visita','Última visita'],['sem_visita','Tempo sem visita'],['supervisor','Último supervisor'],['municipio','Último município'],['projeto','Último projeto'],['atividade','Última atividade'],['visitas','Total de visitas']];
+  const c=[['tecnico','Técnico'],['tempo','Tempo no projeto'],['primeira_visita','Primeira visita'],['ultima_visita','Última visita'],['sem_visita','Tempo sem visita'],['supervisor','Último supervisor'],['municipio','Último município'],['projeto','Último projeto'],['atividade','Última atividade'],['visitas','Total de visitas']];
   const l=[c.map(x=>x[1]).join(';'),...tecInLinhas().map(r=>c.map(([k])=>`"${String(k==='tempo'?tempoAtu(r):k==='sem_visita'?semVisita(r):r[k]??'').replace(/"/g,'""')}"`).join(';'))];
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+l.join('\n')],{type:'text/csv;charset=utf-8'}));a.download='tecnicos_sem_visita_recente.csv';a.click();
 }
