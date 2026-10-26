@@ -357,11 +357,14 @@ def tecnicos_inativos(request: Request, dias: int = 30, seguir: int = 1):
                     HAVING MAX(dt_visita) < (SELECT d FROM ref) - CAST(:dias AS integer)),
         u AS (SELECT DISTINCT ON (tecnico) * FROM {TABLE} WHERE tecnico IN (SELECT tecnico FROM parados)
               ORDER BY tecnico, dt_visita DESC, id_visita DESC),
-        tot AS (SELECT tecnico AS tec_t, COUNT(DISTINCT id_visita) AS visitas, MIN(dt_visita) AS primeira_visita
-                FROM {TABLE} WHERE tecnico IN (SELECT tecnico FROM parados) GROUP BY 1)
+        tot AS (SELECT tecnico AS tec_t, COUNT(DISTINCT id_visita) AS visitas
+                FROM {TABLE} WHERE tecnico IN (SELECT tecnico FROM parados) GROUP BY 1),
+        totp AS (SELECT tecnico AS tec_p, projeto AS proj_p, MIN(dt_visita) AS primeira_visita
+                 FROM {TABLE} WHERE tecnico IN (SELECT tecnico FROM parados) GROUP BY 1, 2)
         SELECT u.tecnico, u.supervisor, u.dt_visita AS ultima_visita, (ref.d - u.dt_visita) AS dias_sem_visita,
-               u.municipio, u.projeto, u.atividade, tot.visitas, tot.primeira_visita
-        FROM u JOIN tot ON tot.tec_t = u.tecnico CROSS JOIN ref
+               u.municipio, u.projeto, u.atividade, tot.visitas, totp.primeira_visita
+        FROM u JOIN tot ON tot.tec_t = u.tecnico
+        LEFT JOIN totp ON totp.tec_p = u.tecnico AND totp.proj_p IS NOT DISTINCT FROM u.projeto CROSS JOIN ref
         WHERE {w}
         ORDER BY u.dt_visita DESC, u.tecnico"""
     with engine.connect() as con:
@@ -424,11 +427,11 @@ _PRIM_CACHE = {"t": 0.0, "v": {}}
 
 
 def _primeira_visita_por_tecnico():
-    """Calculada uma vez e guardada por 10 min (não muda a cada filtro)."""
+    """Primeira visita de cada (técnico, projeto) em TODA a base; guardada por 10 min. Chave (tecnico, projeto)."""
     if _time.time() - _PRIM_CACHE["t"] > 600 or not _PRIM_CACHE["v"]:
         with engine.connect() as con:
-            _PRIM_CACHE["v"] = {r[0]: r[1] for r in con.execute(text(
-                f"SELECT tecnico, MIN(dt_visita) FROM {TABLE} WHERE tecnico IS NOT NULL GROUP BY 1")).all()}
+            _PRIM_CACHE["v"] = {(r[0], r[1]): r[2] for r in con.execute(text(
+                f"SELECT tecnico, projeto, MIN(dt_visita) FROM {TABLE} WHERE tecnico IS NOT NULL GROUP BY 1, 2")).all()}
         _PRIM_CACHE["t"] = _time.time()
     return _PRIM_CACHE["v"]
 
@@ -598,7 +601,7 @@ def resumo(request: Request):
     _prim = _primeira_visita_por_tecnico()   # primeira visita de cada técnico em TODA a base (para o "Tempo no projeto")
     for r in por_tecnico:
         r["ultima_visita"] = r["ultima_visita"].isoformat() if r["ultima_visita"] else None
-        _d = _prim.get(r["tecnico"])
+        _d = _prim.get((r["tecnico"], r.get("projeto")))   # 1ª visita NO PROJETO mostrado para o técnico
         r["primeira_visita"] = _d.isoformat() if _d else None
         r["meses_projeto"] = round(max(0, (ate - _d).days) / 30.44, 1) if _d else None   # da 1ª visita até o fim do período filtrado
     return {"periodo": {"de": de.isoformat(), "ate": ate.isoformat(), "dias": dias,
