@@ -317,7 +317,7 @@ const graf=(id,cfg)=>{if(charts[id])charts[id].destroy();charts[id]=new Chart($(
 const ey={beginAtZero:true,grid:{color:'#e8f0ea'},ticks:{callback:v=>fmt(v)}},ex={grid:{display:false}};
 function area(id,rot,labels,vals,cor){const ctx=$(id).getContext('2d'),g=ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,cor+'55');g.addColorStop(1,cor+'05');
   graf(id,{type:'line',data:{labels,datasets:[{label:rot,data:vals,borderColor:cor,backgroundColor:g,fill:true,tension:.3,pointRadius:vals.length>40?0:3,pointBackgroundColor:cor,borderWidth:2.2}]},options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:{maxTicksLimit:12}}}}})}
-function barraH(id,rows,k,v,rot){graf(id,{type:'bar',data:{labels:rows.map(r=>r[k]),datasets:[{label:rot,data:rows.map(r=>r[v]),backgroundColor:'#2f7d4f',borderRadius:5}]},options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:ey,y:{grid:{display:false},ticks:{autoSkip:false,font:{size:11}}}}}})}
+function barraH(id,rows,k,v,rot){graf(id,{type:'bar',data:{labels:rows.map(r=>r[k]),datasets:[{label:rot,data:rows.map(r=>r[v]),backgroundColor:'#2f7d4f',borderRadius:5}]},plugins:[valLado],options:{valLado:true,indexAxis:'y',maintainAspectRatio:false,layout:{padding:{right:46}},plugins:{legend:{display:false}},scales:{x:ey,y:{grid:{display:false},ticks:{autoSkip:false,color:'#1b2a21',font:{size:11,weight:'600'}}}}}})}
 const ordena=(rows,k,d)=>[...rows].sort((x,y)=>{const a=x[k]??'',b=y[k]??'';return(typeof a==='string'?a.localeCompare(b,'pt-BR'):(a-b))*d});
 function tabela(id,cols,rows,chave,dest){
   const [ok,od]=ordem[chave],max=Math.max(1,...rows.map(r=>r[dest]||0));
@@ -415,6 +415,11 @@ const rotArc={id:'rotArc',afterDatasetsDraw(ch){if(!ch.config.options.rotArc)ret
   ctx.save();ctx.font='700 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
   ch.getDatasetMeta(0).data.forEach((a,i)=>{const f=ds.data[i]/t;if(f<0.035)return;const c=String(ds.backgroundColor[i]).replace('#',''),L=(parseInt(c.slice(0,2),16)*.299+parseInt(c.slice(2,4),16)*.587+parseInt(c.slice(4,6),16)*.114);
     ctx.fillStyle=L<140?'#fff':'#16472a';const pt=a.tooltipPosition();ctx.fillText((f*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%',pt.x,pt.y)});ctx.restore()}};
+const valTopo={id:'valTopo',afterDatasetsDraw(ch){if(!ch.config.options.valTopo)return;const ctx=ch.ctx;ctx.save();ctx.font='700 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';
+  ch.data.datasets.forEach((ds,k)=>{const m=ch.getDatasetMeta(k);if(m.hidden)return;ctx.fillStyle=ds.corValor||'#16472a';m.data.forEach((b,i)=>{const v=ds.data[i];if(v==null)return;ctx.fillText(fmt(v),b.x,b.y-4)})});ctx.restore()}};
+const valLado={id:'valLado',afterDatasetsDraw(ch){if(!ch.config.options.valLado)return;const ctx=ch.ctx,ds=ch.data.datasets[0];ctx.save();ctx.font='700 11px sans-serif';ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillStyle='#16472a';ch.getDatasetMeta(0).data.forEach((b,i)=>{const v=ds.data[i];if(v==null)return;ctx.fillText(fmt(v),b.x+6,b.y)});ctx.restore()}};
+const quebra=(s,n=15)=>{const w=String(s??'').split(' '),L=[];let c='';w.forEach(x=>{if((c+' '+x).trim().length>n&&c){L.push(c);c=x}else c=(c+' '+x).trim()});if(c)L.push(c);return L};
+const tkX={maxRotation:0,minRotation:0,autoSkip:false,color:'#1b2a21',font:{size:12,weight:'600'}};
 const rotPct={id:'rotPct',afterDatasetsDraw(ch){if(!ch.config.options.rotPct)return;const t=ch.data.datasets[0].data.reduce((a,b)=>a+b,0),ctx=ch.ctx,h=ch.config.options.indexAxis==='y';
   ctx.save();ctx.fillStyle='#16472a';ctx.font='600 11px sans-serif';ctx.textBaseline='middle';
   ch.getDatasetMeta(0).data.forEach((b,i)=>{const v=ch.data.datasets[0].data[i];if(!t)return;const tx=(v/t*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%';
@@ -501,11 +506,11 @@ async function atualiza(){
     $('tVis').textContent=dia?'Visitas por dia':'Visitas por mês';$('pVis').textContent=fmt(c.visitas);$('pPro').textContent=fmt(c.propriedades);
     area('gVis','Visitas',lab,ev.map(r=>r.visitas),'#2f7d4f');area('gPro','Propriedades assistidas',lab,ev.map(r=>r.propriedades),'#16472a');
     const pj=d.por_projeto;
-    graf('gProj',{type:'bar',data:{labels:pj.map(r=>r.projeto),datasets:[{label:'Propriedades assistidas',data:pj.map(r=>r.propriedades),backgroundColor:'#16472a',borderRadius:5},{label:'Total visitas',data:pj.map(r=>r.visitas),backgroundColor:'#8fb39a',borderRadius:5}]},options:{maintainAspectRatio:false,scales:{y:ey,x:{...ex,ticks:{font:{size:11}}}}}});
+    graf('gProj',{type:'bar',data:{labels:pj.map(r=>quebra(r.projeto)),datasets:[{label:'Propriedades assistidas',data:pj.map(r=>r.propriedades),backgroundColor:'#16472a',borderRadius:5},{label:'Total visitas',data:pj.map(r=>r.visitas),backgroundColor:'#8fb39a',borderRadius:5}]},plugins:[valTopo],options:{valTopo:true,layout:{padding:{top:22}},maintainAspectRatio:false,plugins:{legend:{labels:{font:{weight:'600'}}}},scales:{y:ey,x:{...ex,ticks:tkX}}}});
     const tipos=[['Padrão',c.visitas_padrao],['Coleta de dados',c.coleta_dados],['Retorno',c.retorno],['Virtual',c.virtual],['Zero',c.zero]].filter(x=>x[1]>0);
     graf('gTipo',{type:'doughnut',data:{labels:tipos.map(x=>x[0]),datasets:[{data:tipos.map(x=>x[1]),backgroundColor:['#2f7d4f','#c9730a','#2b59a8','#7a5ba6','#c0392b'],borderWidth:2,borderColor:'#fff'}]},options:{maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'right'}}}});
-    graf('gDow',{type:'bar',data:{labels:DIAS,datasets:[{label:'Visitas',data:DIAS.map((_,i)=>(d.dia_semana.find(x=>x.dia===i+1)||{visitas:0}).visitas),backgroundColor:'#6fb38a',borderRadius:5}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:ey,x:ex}}});
-    graf('gFreq',{type:'bar',data:{labels:d.frequencia.map(r=>r.faixa),datasets:[{label:'Propriedades',data:d.frequencia.map(r=>r.propriedades),backgroundColor:'#a23b72',borderRadius:5}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:ey,x:ex}}});
+    graf('gDow',{type:'bar',data:{labels:DIAS,datasets:[{label:'Visitas',data:DIAS.map((_,i)=>(d.dia_semana.find(x=>x.dia===i+1)||{visitas:0}).visitas),backgroundColor:'#6fb38a',borderRadius:5}]},plugins:[valTopo],options:{valTopo:true,layout:{padding:{top:22}},maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:tkX}}}});
+    graf('gFreq',{type:'bar',data:{labels:d.frequencia.map(r=>r.faixa),datasets:[{label:'Propriedades',data:d.frequencia.map(r=>r.propriedades),backgroundColor:'#a23b72',borderRadius:5}]},plugins:[valTopo],options:{valTopo:true,layout:{padding:{top:22}},maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:tkX}}}});
     const pa=d.por_atividade.slice().sort((a,b)=>b.visitas-a.visitas);
     barraH('gAtiv',pa,'atividade','visitas','Visitas');barraH('gSup',d.por_supervisor,'supervisor','visitas','Visitas');
     barraH('gTec',d.por_tecnico.slice(0,15),'tecnico','visitas','Visitas');barraH('gMun',d.por_municipio.slice(0,15),'municipio','visitas','Visitas');
