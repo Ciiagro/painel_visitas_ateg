@@ -211,7 +211,19 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
   <section class="painel" id="p-ativ"><div class="grid2" style="grid-template-columns:minmax(0,.65fr) minmax(0,1.7fr);align-items:start"><div class="graf"><div class="g-topo"><div class="g-tit"><h2>Visitas por atividade</h2></div></div><div class="cv alto"><canvas id="gAtiv"></canvas></div></div><div class="graf"><div class="g-topo"><div class="g-tit"><h2>Detalhe por atividade</h2></div><button class="btn sec" data-csv="ativ">CSV</button></div><div class="tw" style="max-height:520px;font-size:12.5px"><table id="tAtiv2" class="t-compacta"></table></div></div></div></section>
   <section class="painel" id="p-sup"><div class="grid2"><div class="graf"><div class="g-topo"><div class="g-tit"><h2>Visitas por supervisor</h2></div></div><div class="cv alto"><canvas id="gSup"></canvas></div></div><div class="graf"><div class="g-topo"><div class="g-tit"><h2>Supervisores</h2></div><button class="btn sec" data-csv="sup">CSV</button></div><div class="tw" style="max-height:520px"><table id="tSup"></table></div><p class="dica" style="margin:8px 4px 0;font-size:12px;color:#5b6f61">Clique em um supervisor para ver todos os técnicos dele.</p></div></div>
     <div class="graf" id="supDetBox" style="margin-top:16px;display:none"><div class="g-topo"><div class="g-tit"><h2 id="supDetTit">Técnicos</h2></div><button class="btn sec" id="supDetFechar">Fechar</button><button class="btn sec" data-csv="supdet">CSV</button></div><div class="tw" style="max-height:520px"><table id="tSupDet"></table></div></div></section>
-  <section class="painel" id="p-tec"><div class="grid2"><div class="graf"><div class="g-topo"><div class="g-tit"><h2>15 técnicos com mais visitas</h2></div></div><div class="cv alto"><canvas id="gTec"></canvas></div></div><div class="graf"><div class="g-topo"><div class="g-tit"><h2>Técnicos</h2></div><button class="btn sec" data-csv="tec">CSV</button></div><input class="busca" id="busca" placeholder="Buscar técnico ou supervisor..."><div class="tw" style="max-height:470px"><table id="tTec"></table></div></div></div></section>
+  <section class="painel" id="p-tec"><div class="grid2"><div class="graf"><div class="g-topo"><div class="g-tit"><h2>15 técnicos com mais visitas</h2></div></div><div class="cv alto"><canvas id="gTec"></canvas></div></div><div class="graf"><div class="g-topo"><div class="g-tit"><h2>Técnicos</h2></div><button class="btn sec" data-csv="tec">CSV</button></div><input class="busca" id="busca" placeholder="Buscar técnico ou supervisor..."><div class="tw" style="max-height:470px"><table id="tTec"></table></div></div></div>
+    <div class="graf" style="margin-top:14px">
+      <div class="g-topo"><span class="ico g" style="--cor:#a23b72" data-i="pessoa"></span>
+        <div class="g-tit"><h2>Técnicos sem visita recente</h2><p class="formula" id="tiInfo"></p></div>
+        <div style="margin-left:auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-end">
+          <label style="display:flex;gap:6px;align-items:center;white-space:nowrap;font-size:.85rem">Sem visita há mais de
+            <select id="tiDias" style="min-width:80px"><option>15</option><option selected>30</option><option>45</option><option>60</option><option>90</option><option>180</option></select> dias</label>
+          <label style="display:flex;gap:6px;align-items:center;white-space:nowrap;font-size:.85rem"><input type="checkbox" id="tiSeguir" checked> Seguir os filtros</label>
+          <input type="search" id="tiBusca" placeholder="Buscar técnico ou supervisor..." style="min-width:200px;padding:7px 10px">
+          <button class="btn sec" id="tiCsv">CSV</button></div></div>
+      <div class="tw" style="max-height:470px"><table id="tTecIn"></table></div>
+      <p class="formula" style="margin:8px 4px 0">Tempo de atuação = da primeira à última visita (a base começa em jun/2024). Mostra a última visita e o último supervisor de cada técnico. "Seguir os filtros" aplica supervisor, região, município etc. à última visita do técnico (o período De/Até não vale aqui). Desmarque para ver todos os técnicos sem visita recente.</p>
+    </div></section>
   <section class="painel" id="p-mun">
     <div class="graf" id="mapaBox" style="margin-bottom:16px"><div class="g-topo"><span class="ico g" style="--cor:#0b7a80" data-i="pin"></span><div class="g-tit"><h2>Mapa do Ceará</h2><p class="formula" id="mapaSub"></p></div>
       <div class="seg" id="mapaModo"><button class="on" data-m="prop">Propriedades por atividade</button><button data-m="tec">Técnicos por atividade</button></div></div>
@@ -516,7 +528,7 @@ async function atualiza(){
     const pa=d.por_atividade.slice().sort((a,b)=>b.visitas-a.visitas);
     barraH('gAtiv',pa,'atividade','visitas','Visitas');barraH('gSup',d.por_supervisor,'supervisor','visitas','Visitas');
     barraH('gTec',d.por_tecnico.slice(0,15),'tecnico','visitas','Visitas');barraH('gMun',d.por_municipio.slice(0,15),'municipio','visitas','Visitas');
-    destaques(d);listas();carteira(d);inicio(d);desativacoes(d);assistDes(d);perfilProd();mapaCeara();
+    destaques(d);listas();carteira(d);inicio(d);desativacoes(d);assistDes(d);perfilProd();mapaCeara();carregaTecIn();
     $('rod').innerHTML=`Fonte: SisATeG (acompanhamento mensal de visitas, sem visitas excluídas e sem o projeto Treinamento SP). Total de visitas padrão = visitas que não são coleta de dados. Propriedades ativas/inativas: situação oficial atual de cada propriedade visitada no período. Orientações: as registradas nas visitas do período, com a situação atual. Dados até ${br(window.__max)}.`;
   }catch(e){if(meu===atuSeq)erro(e.message)}finally{if(meu===atuSeq)$('carr').style.display='none'}
 }
@@ -689,7 +701,7 @@ function inicio(d){
   $('iniTexto').textContent=txt;
 }
 function aplicaIni(){const i=document.querySelector('.aba.on');const ini=i&&(i.dataset.p==='ini'||i.dataset.p==='perf'||i.dataset.p==='desemp');document.querySelectorAll('.banda').forEach(e=>e.style.display=ini?'none':'')}
-document.querySelectorAll('.aba').forEach(b=>b.addEventListener('click',()=>setTimeout(()=>{aplicaIni();perfilProd();mapaCeara()},0)));
+document.querySelectorAll('.aba').forEach(b=>b.addEventListener('click',()=>setTimeout(()=>{aplicaIni();perfilProd();mapaCeara();carregaTecIn()},0)));
 $('iniVer').onclick=()=>$('iniAlertas').scrollIntoView({behavior:'smooth',block:'start'});
 aplicaIni();
 function maisContagem(){const n=['projeto','coleta','presencial','situacao','ativa'].filter(k=>$(k)&&$(k).value).length,ab=$('filtros').classList.contains('mais');$('maisF').textContent=(ab?'Menos filtros ▴':'Mais filtros ▾')+(n?` (${n})`:'')}
@@ -697,6 +709,29 @@ $('maisF').onclick=()=>{$('filtros').classList.toggle('mais');maisContagem()};
 ['projeto','coleta','presencial','situacao','ativa'].forEach(k=>$(k).addEventListener('change',maisContagem));
 $('limpar').addEventListener('click',()=>setTimeout(maisContagem,80));
 maisContagem();
+let TI=[];
+async function carregaTecIn(){
+  if(!$('p-tec').classList.contains('on'))return;
+  const p=qs();p.delete('de');p.delete('ate');p.set('dias',$('tiDias').value);p.set('seguir',$('tiSeguir').checked?1:0);
+  try{const d=await api('/api/tecnicos-inativos?'+p);TI=d.tecnicos;
+    $('tiInfo').textContent=`Referência: última visita da base em ${br(d.referencia)} · ${fmt(TI.length)} técnico(s) sem visita há mais de ${d.dias} dias`;tecInTabela()}
+  catch(e){$('tiInfo').textContent=e.message}
+}
+const emMeses=d=>{const m=d/30.44;return (m<10?m.toFixed(1):Math.round(m)).toString().replace('.',',')+(Math.round(m*10)/10===1?' mês':' meses')};
+function tempoAtu(r){if(!r.primeira_visita||!r.ultima_visita)return '';return emMeses(Math.round((new Date(r.ultima_visita+'T12:00:00')-new Date(r.primeira_visita+'T12:00:00'))/864e5))}
+function semVisita(r){return r.dias_sem_visita==null?'':emMeses(r.dias_sem_visita)}
+function tecInLinhas(){const b=($('tiBusca').value||'').toLowerCase();return TI.filter(r=>!b||((r.tecnico||'')+' '+(r.supervisor||'')).toLowerCase().includes(b))}
+function tecInTabela(){
+  const r=tecInLinhas();
+  $('tTecIn').innerHTML='<thead><tr><th class="l">Técnico</th><th>Tempo de atuação</th><th>Primeira visita</th><th>Última visita</th><th>Tempo sem visita</th><th class="l">Último supervisor</th><th class="l">Último município</th><th class="l">Último projeto</th><th class="l">Última atividade</th><th>Total de visitas</th></tr></thead><tbody>'+
+   r.map(x=>`<tr><td class="l">${esc(x.tecnico)}</td><td>${tempoAtu(x)}</td><td>${br(x.primeira_visita)}</td><td>${br(x.ultima_visita)}</td><td>${semVisita(x)}</td><td class="l">${esc(x.supervisor||'(sem supervisor)')}</td><td class="l">${esc(x.municipio||'')}</td><td class="l">${esc(x.projeto||'')}</td><td class="l">${esc(x.atividade||'')}</td><td>${fmt(x.visitas)}</td></tr>`).join('')+'</tbody>';
+}
+function tecInCsv(){
+  const c=[['tecnico','Técnico'],['tempo','Tempo de atuação'],['primeira_visita','Primeira visita'],['ultima_visita','Última visita'],['sem_visita','Tempo sem visita'],['supervisor','Último supervisor'],['municipio','Último município'],['projeto','Último projeto'],['atividade','Última atividade'],['visitas','Total de visitas']];
+  const l=[c.map(x=>x[1]).join(';'),...tecInLinhas().map(r=>c.map(([k])=>`"${String(k==='tempo'?tempoAtu(r):k==='sem_visita'?semVisita(r):r[k]??'').replace(/"/g,'""')}"`).join(';'))];
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+l.join('\n')],{type:'text/csv;charset=utf-8'}));a.download='tecnicos_sem_visita_recente.csv';a.click();
+}
+$('tiDias').onchange=carregaTecIn;$('tiSeguir').onchange=carregaTecIn;$('tiBusca').oninput=tecInTabela;$('tiCsv').onclick=tecInCsv;
 let DES=null;
 async function desempInit(){
   try{const r=await fetch('/api/desempenho');if(!r.ok||!(await r.json()).ativo)return}catch(e){return}

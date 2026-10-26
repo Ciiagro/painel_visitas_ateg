@@ -342,6 +342,30 @@ _des = os.environ.get("DESEMPENHO")
 DESEMPENHO = (_des.strip().lower() in ("1", "true", "sim")) if _des is not None else True
 
 
+@app.get("/api/tecnicos-inativos")
+def tecnicos_inativos(request: Request, dias: int = 30, seguir: int = 1):
+    """Técnicos sem visita há mais de `dias` dias (contados até a última visita da base): última visita e último supervisor.
+    A inatividade usa TODAS as visitas do técnico; os filtros (supervisor, região etc.) valem para a última visita dele.
+    seguir=0 ignora os filtros."""
+    dias = max(1, min(int(dias), 730))
+    f = _filtros_da_requisicao(request)[0] if seguir else {}
+    w, p = _where(f)  # sem datas: o período não se aplica
+    p["dias"] = dias
+    sql = f"""WITH ref AS (SELECT MAX(dt_visita) AS d FROM {TABLE}),
+        u AS (SELECT DISTINCT ON (tecnico) * FROM {TABLE} WHERE tecnico IS NOT NULL ORDER BY tecnico, dt_visita DESC, id_visita DESC),
+        tot AS (SELECT tecnico AS tec_t, COUNT(DISTINCT id_visita) AS visitas, MIN(dt_visita) AS primeira_visita
+                FROM {TABLE} WHERE tecnico IS NOT NULL GROUP BY 1)
+        SELECT u.tecnico, u.supervisor, u.dt_visita AS ultima_visita, (ref.d - u.dt_visita) AS dias_sem_visita,
+               u.municipio, u.projeto, u.atividade, tot.visitas, tot.primeira_visita
+        FROM u JOIN tot ON tot.tec_t = u.tecnico CROSS JOIN ref
+        WHERE {w} AND (ref.d - u.dt_visita) > :dias
+        ORDER BY u.dt_visita DESC, u.tecnico"""
+    with engine.connect() as con:
+        rows = _linhas(con, sql, p)
+        ref = con.execute(text(f"SELECT MAX(dt_visita) FROM {TABLE}")).scalar()
+    return {"referencia": ref.isoformat() if ref else None, "dias": dias, "tecnicos": rows}
+
+
 @app.get("/api/desempenho")
 def desempenho(request: Request, periodo: str = ""):
     if not DESEMPENHO:
