@@ -335,7 +335,7 @@ const ordena=(rows,k,d)=>[...rows].sort((x,y)=>{const a=x[k]??'',b=y[k]??'';retu
 function tabela(id,cols,rows,chave,dest){
   const [ok,od]=ordem[chave],max=Math.max(1,...rows.map(r=>r[dest]||0));
   $(id).innerHTML='<thead><tr>'+cols.map(([k,t])=>`<th data-k="${k}" class="${typeof rows[0]?.[k]==='string'&&k!=='pconc'?'l':''}">${t}${ok===k?(od>0?' ▲':' ▼'):''}</th>`).join('')+'</tr></thead><tbody>'+
-   ordena(rows,ok,od).map(r=>'<tr>'+cols.map(([k])=>{let v=r[k];const s=typeof v==='string'&&k!=='pconc';if(k==='tecnico_sup')v=esc(r.tecnico)+'<br><small class="sub">'+esc(r.supervisor||'(sem supervisor)')+'</small>';else if(k==='meses_projeto')v=v==null?'':emMeses(v*30.44);else v=typeof v==='number'?fmt(v):(k==='ultima_visita'&&v?br(v):esc(v??''));if(k===dest)v+=`<span class="barra" style="width:${Math.round((r[k]||0)/max*50)}px"></span>`;return`<td class="${s?'l':''}">${v}</td>`}).join('')+'</tr>').join('')+'</tbody>';
+   ordena(rows,ok,od).map(r=>'<tr>'+cols.map(([k])=>{let v=r[k];const s=typeof v==='string'&&k!=='pconc';if(k==='tecnico_sup')v=esc(r.tecnico)+'<br><small class="sub">'+esc(r.supervisor||'(sem supervisor)')+'</small>';else if(k==='meses_projeto')v=v==null?'':emMeses(Math.min(v*30.44,MAX_PROJ_DIAS));else v=typeof v==='number'?fmt(v):(k==='ultima_visita'&&v?br(v):esc(v??''));if(k===dest)v+=`<span class="barra" style="width:${Math.round((r[k]||0)/max*50)}px"></span>`;return`<td class="${s?'l':''}">${v}</td>`}).join('')+'</tr>').join('')+'</tbody>';
   $(id).querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;ordem[chave]=[k,ordem[chave][0]===k?-ordem[chave][1]:-1];listas()});
 }
 function supDet(){
@@ -718,8 +718,9 @@ async function carregaTecIn(){
     $('tiInfo').textContent=`Referência: última visita da base em ${br(d.referencia)} · ${fmt(TI.length)} técnico(s) sem visita há mais de ${d.dias} dias`;tecInTabela()}
   catch(e){$('tiInfo').textContent=e.message}
 }
+const MAX_PROJ_DIAS=Math.round(24*30.44); // o projeto tem no máximo 24 meses
 const emMeses=d=>{const m=d/30.44;return (m<10?m.toFixed(1):Math.round(m)).toString().replace('.',',')+(Math.round(m*10)/10===1?' mês':' meses')};
-function tempoAtu(r){if(!r.primeira_visita||!r.ultima_visita)return '';return emMeses(Math.round((new Date(r.ultima_visita+'T12:00:00')-new Date(r.primeira_visita+'T12:00:00'))/864e5))}
+function tempoAtu(r){if(!r.primeira_visita||!r.ultima_visita)return '';return emMeses(Math.min(MAX_PROJ_DIAS,Math.round((new Date(r.ultima_visita+'T12:00:00')-new Date(r.primeira_visita+'T12:00:00'))/864e5)))}
 function semVisita(r){return r.dias_sem_visita==null?'':emMeses(r.dias_sem_visita)}
 function tecInLinhas(){const b=($('tiBusca').value||'').toLowerCase();return TI.filter(r=>!b||((r.tecnico||'')+' '+(r.supervisor||'')).toLowerCase().includes(b))}
 function tecInTabela(){
