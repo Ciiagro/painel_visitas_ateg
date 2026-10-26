@@ -492,8 +492,10 @@ async function mapaCeara(){
   }catch(e){msg.textContent='Não foi possível montar o mapa: '+e.message}
 }
 document.addEventListener('click',e=>{const b=e.target.closest('#mapaModo button');if(!b)return;document.querySelectorAll('#mapaModo button').forEach(x=>x.classList.toggle('on',x===b));mapaModo=b.dataset.m;mapaOff=new Set();mapaDados=null;mapaCeara()});
+let atuSeq=0;
 async function atualiza(){
-  erro('');$('carr').style.display='grid';
+  if(!$('de').value||!$('ate').value)return;
+  const meu=++atuSeq;erro('');$('carr').style.display='grid';
   try{
     await carregaFiltros();
     dados=await api('/api/resumo?'+qs());const d=dados,c=d.cards,ev=d.evolucao.pontos,dia=d.evolucao.por_dia;
@@ -516,7 +518,7 @@ async function atualiza(){
     barraH('gTec',d.por_tecnico.slice(0,15),'tecnico','visitas','Visitas');barraH('gMun',d.por_municipio.slice(0,15),'municipio','visitas','Visitas');
     destaques(d);listas();carteira(d);inicio(d);desativacoes(d);assistDes(d);perfilProd();mapaCeara();
     $('rod').innerHTML=`Fonte: SisATeG (acompanhamento mensal de visitas, sem visitas excluídas e sem o projeto Treinamento SP). Total de visitas padrão = visitas que não são coleta de dados. Propriedades ativas/inativas: situação oficial atual de cada propriedade visitada no período. Orientações: as registradas nas visitas do período, com a situação atual. Dados até ${br(window.__max)}.`;
-  }catch(e){erro(e.message)}finally{$('carr').style.display='none'}
+  }catch(e){if(meu===atuSeq)erro(e.message)}finally{if(meu===atuSeq)$('carr').style.display='none'}
 }
 function csv(k){
   const m={desat:[(dados.desativacoes&&dados.desativacoes.por_motivo)||[],['motivo','propriedades','percentual']],ativ:[dados.por_atividade.map(r=>{const q=dados.carteira.por_atividade.find(x=>x.nome===r.atividade)||{};return {...r,ativas:q.ativas||0,inativas:q.inativas||0,ori_total:q.ori_total||0,ori_concluida:q.ori_concluida||0}}),['atividade','municipios','supervisores','tecnicos','propriedades','ativas','inativas','visitas','ori_total','ori_concluida']],sup:[dados.por_supervisor,['supervisor','tecnicos','propriedades','visitas']],tec:[dados.por_tecnico,['tecnico','supervisor',...(dados.ranking_periodo?['pos_geral','nota_ranking']:[]),'propriedades','visitas','coleta_dados','dias_com_visita','ultima_visita']],mun:[dados.por_municipio,['municipio',...((dados.por_regiao||[]).length?['regiao','sindicato']:[]),'tecnicos','propriedades','visitas']],reg:[dados.por_regiao||[],['regiao','municipios','supervisores','tecnicos','propriedades','visitas']],sind:[dados.por_sindicato||[],['sindicato','municipios','supervisores','tecnicos','propriedades','visitas']],assdes:[adLinhas(dados),['mes','assistidas','desativadas']],supdet:[dados.por_tecnico.filter(r=>(r.supervisor||'(sem supervisor)')===supSel),['tecnico','supervisor','propriedades','visitas','coleta_dados','dias_com_visita','ultima_visita']]}[k]||(()=>{const cc=['nome','propriedades','ativas','inativas','divergentes','ori_total','ori_concluida','ori_em_execucao','ori_aberta','ori_cancelada','ori_nao_realizada'];return[dados.carteira[{cart_ativ:'por_atividade',cart_sup:'por_supervisor',cart_tec:'por_tecnico'}[k]],cc]})();

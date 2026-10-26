@@ -5,3 +5,8 @@ __pycache__/
 *.pyc
 COLAR_NO_VERCEL.txt
 notas.txt
+
+# Arquivos de conferência (uso local no pgAdmin, não vão para o GitHub)
+sql/verifica_contagens.sql
+sql/diagnostico_supervisores.sql
+data-*.csv
