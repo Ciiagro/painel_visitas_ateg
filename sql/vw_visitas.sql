@@ -67,7 +67,7 @@ WITH v AS (
     AND a.dt_visita <  (CURRENT_DATE + 1)::timestamp               -- só até hoje
 )
 SELECT v.id_visita, v.id_propriedade, v.dt_visita, v.mes, v.projeto, v.atividade, v.municipio, v.tecnico,
-       replace(replace(COALESCE(u.supervisor_atual, v.supervisor_sisateg, k.ultimo_supervisor), 'JOS&#65533;', 'JOSÉ'), 'J&#65533;NIOR', 'JÚNIOR') AS supervisor, v.supervisor_sisateg,
+       replace(replace(COALESCE(u.supervisor_atual, v.supervisor_sisateg, u2.supervisor_atual, k.ultimo_supervisor), 'JOS&#65533;', 'JOSÉ'), 'J&#65533;NIOR', 'JÚNIOR') AS supervisor, v.supervisor_sisateg,
        v.coleta_dados, v.presencial, v."virtual", v.retorno, v.visita_zero, v.valida,
        v.status_sisateg, v.status_oficial, v.ori_aberta, v.ori_em_execucao, v.ori_concluida,
        v.ori_cancelada, v.ori_nao_realizada, v.ori_total,
@@ -80,10 +80,14 @@ SELECT v.id_visita, v.id_propriedade, v.dt_visita, v.mes, v.projeto, v.atividade
        -- região e sindicato do município (tabela public.municipio_regiao, copiada do Supabase)
        r.regiao_faec, r.regiao_sebrae, r.regiao_planejamento, r.sindicato
 FROM v
+LEFT JOIN (SELECT DISTINCT ON (tecnico, mes) tecnico, mes, supervisor_sisateg AS supervisor_atual
+           FROM v WHERE tecnico IS NOT NULL AND supervisor_sisateg IS NOT NULL
+           ORDER BY tecnico, mes, dt_visita DESC, id_visita DESC) u ON u.tecnico = v.tecnico AND u.mes = v.mes   -- supervisor da ÚLTIMA visita do técnico NO MESMO MÊS
 LEFT JOIN (SELECT DISTINCT ON (tecnico) tecnico, supervisor_sisateg AS supervisor_atual
            FROM v WHERE tecnico IS NOT NULL AND supervisor_sisateg IS NOT NULL
-           ORDER BY tecnico, dt_visita DESC, id_visita DESC) u ON u.tecnico = v.tecnico   -- supervisor da ÚLTIMA visita do técnico
-LEFT JOIN public.ranking_tecnicos k ON btrim(k.tecnico_responsavel, E' \t\r\n') = v.tecnico
+           ORDER BY tecnico, dt_visita DESC, id_visita DESC) u2 ON u2.tecnico = v.tecnico   -- se o mês não tiver supervisor: o da última visita do técnico
+LEFT JOIN (SELECT DISTINCT ON (btrim(tecnico_responsavel, E' \t\r\n')) btrim(tecnico_responsavel, E' \t\r\n') AS tecnico_responsavel, ultimo_supervisor
+           FROM public.ranking_tecnicos ORDER BY btrim(tecnico_responsavel, E' \t\r\n'), ultimo_supervisor) k ON k.tecnico_responsavel = v.tecnico   -- 1 linha por técnico (evita duplicar visitas)
 LEFT JOIN public.municipio_regiao r ON r.nome_norm = upper(regexp_replace(btrim(translate(v.municipio,
      'ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇáàâãäéèêëíìîïóòôõöúùûüç', 'AAAAAEEEEIIIIOOOOOUUUUCaaaaaeeeeiiiiooooouuuuc')), '\s+', ' ', 'g'));
 
