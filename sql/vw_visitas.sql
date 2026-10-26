@@ -12,6 +12,7 @@
 --     o painel conta cada id_visita uma vez, pois a tabela repete linhas)
 --   Propriedade desativada = vinculo_dt_fim preenchido (data em que o vínculo terminou) e vinculo_motivo (motivo da desativação)
 --   Supervisor                = supervisor_atual da ÚLTIMA visita do técnico (o mais recente do SisATeG); se faltar, cai no ranking_tecnicos.ultimo_supervisor
+-- Região/sindicato: exige a tabela public.municipio_regiao (rode sincronizar_municipios.py antes, ou sql/municipio_regiao.sql).
 -- Só entram visitas até hoje (as futuras/agendadas ficam de fora) e a partir de 01/06/2024.
 -- =====================================================================
 CREATE OR REPLACE VIEW public.vw_visitas AS
@@ -67,12 +68,16 @@ SELECT v.id_visita, v.id_propriedade, v.dt_visita, v.mes, v.projeto, v.atividade
        v.id_produtor, v.genero, v.estado_civil, v.idade, v.formacao_academica, v.perfil_fundiario,   -- perfil do produtor
        -- coordenadas da propriedade (só as que caem dentro do Ceará; o resto fica nulo)
        CASE WHEN v.lat0 BETWEEN -7.95 AND -2.70 AND v.lon0 BETWEEN -41.60 AND -37.10 THEN v.lat0 END AS latitude,
-       CASE WHEN v.lat0 BETWEEN -7.95 AND -2.70 AND v.lon0 BETWEEN -41.60 AND -37.10 THEN v.lon0 END AS longitude
+       CASE WHEN v.lat0 BETWEEN -7.95 AND -2.70 AND v.lon0 BETWEEN -41.60 AND -37.10 THEN v.lon0 END AS longitude,
+       -- região e sindicato do município (tabela public.municipio_regiao, copiada do Supabase)
+       r.regiao_faec, r.regiao_sebrae, r.regiao_planejamento, r.sindicato
 FROM v
 LEFT JOIN (SELECT DISTINCT ON (tecnico) tecnico, supervisor_sisateg AS supervisor_atual
            FROM v WHERE tecnico IS NOT NULL AND supervisor_sisateg IS NOT NULL
            ORDER BY tecnico, dt_visita DESC, id_visita DESC) u ON u.tecnico = v.tecnico   -- supervisor da ÚLTIMA visita do técnico
-LEFT JOIN public.ranking_tecnicos k ON btrim(k.tecnico_responsavel, E' \t\r\n') = v.tecnico;
+LEFT JOIN public.ranking_tecnicos k ON btrim(k.tecnico_responsavel, E' \t\r\n') = v.tecnico
+LEFT JOIN public.municipio_regiao r ON r.nome_norm = upper(regexp_replace(btrim(translate(v.municipio,
+     'ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇáàâãäéèêëíìîïóòôõöúùûüç', 'AAAAAEEEEIIIIOOOOOUUUUCaaaaaeeeeiiiiooooouuuuc')), '\s+', ' ', 'g'));
 
 -- Se existir o usuário somente-leitura do painel, libera a view para ele:
 DO $$ BEGIN

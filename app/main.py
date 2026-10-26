@@ -53,6 +53,7 @@ if "TABLE_NAME" not in os.environ:
         pass
 print(f"[painel] consultando: {TABLE}")
 
+
 # Cache de respostas (5 min): o mesmo filtro/período não refaz as consultas pesadas. Limpa sozinho ao reiniciar.
 import time as _time
 _CACHE: dict = {}
@@ -61,7 +62,7 @@ _CACHE_TTL = int(os.environ.get("CACHE_SEGUNDOS", "300"))
 
 @app.middleware("http")
 async def _cache_api(request: Request, call_next):
-    if request.method != "GET" or not request.url.path.startswith("/api/") or request.url.path.startswith("/api/conferencia") or _CACHE_TTL <= 0:
+    if request.method != "GET" or not request.url.path.startswith("/api/") or request.url.path.startswith("/api/conferencia") or request.url.path.startswith("/api/desempenho") or _CACHE_TTL <= 0:
         return await call_next(request)
     k = request.url.path + "?" + str(request.url.query)
     hit = _CACHE.get(k)
@@ -85,6 +86,19 @@ if _static.is_dir():
 
 TEXTO = {"supervisor": "supervisor", "tecnico": "tecnico", "projeto": "projeto",
          "atividade": "atividade", "municipio": "municipio"}
+# Filtros de Região (FAEC) e Sindicato: só aparecem quando a tabela/view consultada já tem essas colunas
+# (rode `python sincronizar_municipios.py --criar-views` uma vez). Antes disso o painel funciona normalmente, sem eles.
+try:
+    with engine.connect() as _c:
+        _cols = {r[0] for r in _c.execute(text(
+            "SELECT attname FROM pg_attribute WHERE attrelid = to_regclass(:t) AND attnum > 0 AND NOT attisdropped"), {"t": TABLE})}
+    if "regiao_faec" in _cols and "sindicato" in _cols:
+        TEXTO["regiao"] = "regiao_faec"
+        TEXTO["sindicato"] = "sindicato"
+except Exception:
+    pass
+_MUN_EXTRA = ", MAX(regiao_faec) AS regiao, MAX(sindicato) AS sindicato" if "regiao" in TEXTO else ""
+
 SIMNAO = {"coleta": "coleta_dados", "presencial": "presencial", "valida": "valida"}
 # Propriedade ativa/inativa (situação oficial; se não houver, a do SisATeG). "sim" = ativa, "nao" = inativa.
 # Situação da visita no SisATeG: VALIDA, VALIDADA ou INVALIDA ("validas" = VALIDA + VALIDADA).
@@ -322,6 +336,41 @@ def mapa_tecnicos(request: Request):
                      r["visitas"], r["propriedades"], meses(r["tecnico"])] for r in rows]}
 
 
+# Aba "Desempenho": mostra o resultado final do ranking (public.ranking_resultado, enviada sozinha pelo ranking quando o admin abre um mês encerrado
+# "Publicar no painel de visitas" do ranking). Fica ABERTA (inclusive na Vercel). Para desligar: DESEMPENHO=0.
+_des = os.environ.get("DESEMPENHO")
+DESEMPENHO = (_des.strip().lower() in ("1", "true", "sim")) if _des is not None else True
+
+
+@app.get("/api/desempenho")
+def desempenho(request: Request, periodo: str = ""):
+    if not DESEMPENHO:
+        return {"ativo": False}
+    q = request.query_params
+    with engine.connect() as con:
+        if not con.execute(text("SELECT to_regclass('public.ranking_resultado') IS NOT NULL")).scalar():
+            return {"ativo": True, "tabela": False, "periodos": [], "linhas": []}
+        periodos = _linhas(con, """SELECT periodo_inicio::text AS ini, periodo_fim::text AS fim, MAX(publicado_em)::text AS publicado,
+            COUNT(*) AS tecnicos, (periodo_fim < CURRENT_DATE) AS encerrado
+            FROM public.ranking_resultado GROUP BY periodo_inicio, periodo_fim ORDER BY 1 DESC, 2 DESC""", {})
+        if not periodos:
+            return {"ativo": True, "tabela": True, "periodos": [], "linhas": []}
+        ini, fim = (periodo.split("|") + [""])[:2] if periodo else (next((x for x in periodos if x["encerrado"]), periodos[0])["ini"], next((x for x in periodos if x["encerrado"]), periodos[0])["fim"])
+        if not any(x["ini"] == ini and x["fim"] == fim for x in periodos):
+            ini, fim = periodos[0]["ini"], periodos[0]["fim"]
+        w, p = ["periodo_inicio = :ini", "periodo_fim = :fim"], {"ini": ini, "fim": fim}
+        if q.get("supervisor"):
+            w.append("upper(btrim(supervisor)) = upper(btrim(:sup))"); p["sup"] = q["supervisor"]
+        if q.get("tecnico"):
+            w.append("upper(btrim(tecnico)) = upper(btrim(:tec))"); p["tec"] = q["tecnico"]
+        linhas = _linhas(con, f"""SELECT posicao_geral, tecnico, supervisor, posicao_supervisor, tecnicos_no_supervisor,
+            nota_final::float8 AS nota_final, avaliacao_supervisor::float8 AS avaliacao_supervisor, sem_avaliacao,
+            visitas, propriedades_ativas, propriedades_inativas, pct_visitas_validas::float8 AS pct_visitas_validas,
+            orientacoes, pct_ori_concluidas::float8 AS pct_ori_concluidas, aviso
+            FROM public.ranking_resultado WHERE {' AND '.join(w)} ORDER BY posicao_geral, tecnico""", p)
+    return {"ativo": True, "tabela": True, "periodos": periodos, "periodo": {"ini": ini, "fim": fim}, "linhas": linhas}
+
+
 @app.get("/api/conferencia/ativo")
 def conferencia_ativo():
     return {"ativo": CONFERENCIA}
@@ -427,7 +476,37 @@ def resumo(request: Request):
         por_municipio = _linhas(con, f"""SELECT COALESCE(municipio, '(sem município)') AS municipio,
             COUNT(DISTINCT supervisor) AS supervisores, COUNT(DISTINCT tecnico) AS tecnicos, COUNT(DISTINCT atividade) AS atividades,
             COUNT(DISTINCT id_propriedade) AS propriedades,
-            COUNT(DISTINCT id_visita) AS visitas FROM {TABLE} WHERE {w} GROUP BY 1 ORDER BY 6 DESC LIMIT 400""", p)
+            COUNT(DISTINCT id_visita) AS visitas{_MUN_EXTRA} FROM {TABLE} WHERE {w} GROUP BY 1 ORDER BY 6 DESC LIMIT 400""", p)
+        # Posição geral e nota do último ranking publicado (aba Desempenho), ao lado de cada técnico
+        ranking_periodo = None
+        if DESEMPENHO:
+            try:
+                if con.execute(text("SELECT to_regclass('public.ranking_resultado') IS NOT NULL")).scalar():
+                    _per = con.execute(text("SELECT periodo_inicio, periodo_fim FROM public.ranking_resultado "
+                                            "ORDER BY (periodo_fim < CURRENT_DATE) DESC, periodo_inicio DESC, periodo_fim DESC LIMIT 1")).first()
+                    if _per:
+                        _rk = {r[0]: (r[1], r[2]) for r in con.execute(text(
+                            "SELECT upper(btrim(tecnico)), posicao_geral, nota_final::float8 FROM public.ranking_resultado "
+                            "WHERE periodo_inicio = :i AND periodo_fim = :f"), {"i": _per[0], "f": _per[1]})}
+                        for _t in por_tecnico:
+                            _x = _rk.get((_t["tecnico"] or "").strip().upper())
+                            if _x:
+                                _t["pos_geral"], _t["nota_ranking"] = _x
+                        ranking_periodo = _per[0].strftime("%m/%Y") if _per[0].strftime("%m%Y") == _per[1].strftime("%m%Y") \
+                            else f"{_per[0].strftime('%m/%Y')} a {_per[1].strftime('%m/%Y')}"
+            except Exception:
+                ranking_periodo = None
+        por_regiao, por_sindicato = [], []
+        if "regiao" in TEXTO:   # só quando a view já tem região/sindicato
+            for _col, _alias in (("regiao_faec", "regiao"), ("sindicato", "sindicato")):
+                _l = _linhas(con, f"""SELECT COALESCE({_col}, '(sem {_alias})') AS {_alias}, COUNT(DISTINCT municipio) AS municipios,
+                    COUNT(DISTINCT supervisor) AS supervisores, COUNT(DISTINCT tecnico) AS tecnicos,
+                    COUNT(DISTINCT id_propriedade) AS propriedades, COUNT(DISTINCT id_visita) AS visitas
+                    FROM {TABLE} WHERE {w} GROUP BY 1 ORDER BY 6 DESC LIMIT 400""", p)
+                if _alias == "regiao":
+                    por_regiao = _l
+                else:
+                    por_sindicato = _l
         props_mes = _linhas(con, f"""SELECT mes, COUNT(DISTINCT id_propriedade) AS propriedades
             FROM {TABLE} WHERE {w} GROUP BY 1 ORDER BY 1""", p)
         dow = _linhas(con, f"""SELECT EXTRACT(isodow FROM dt_visita)::int AS dia, COUNT(DISTINCT id_visita) AS visitas
@@ -483,5 +562,5 @@ def resumo(request: Request):
             "municipios_comparacao": mun_comp,
             "desativacoes": desat, "props_mes": props_mes,
             "por_supervisor": por_supervisor, "por_tecnico": por_tecnico,
-            "por_municipio": por_municipio, "dia_semana": dow, "frequencia": frequencia, "destaques": dest,
+            "por_municipio": por_municipio, "por_regiao": por_regiao, "por_sindicato": por_sindicato, "ranking_periodo": ranking_periodo, "dia_semana": dow, "frequencia": frequencia, "destaques": dest,
             "carteira": {"total": carteira, "por_atividade": cart_ativ, "por_supervisor": cart_sup, "por_tecnico": cart_tec}}

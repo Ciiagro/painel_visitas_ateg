@@ -140,8 +140,11 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
     <button class="aba" data-p="mun"><span data-i="pin"></span>Municípios</button>
     <button class="aba" data-p="perf"><span data-i="pessoas"></span>Perfil dos produtores</button>
     <button class="aba" data-p="conf" id="abaConf" style="display:none"><span data-i="check"></span>Conferência</button>
+    <button class="aba" data-p="desemp" id="abaDesemp" style="display:none"><span data-i="estrela"></span>Desempenho</button>
   </nav>
   <section class="filtros" id="filtros">
+    <label><span class="lb" data-i="pin">Região</span><select id="regiao"></select></label>
+    <label><span class="lb" data-i="pessoas">Sindicato</span><select id="sindicato"></select></label>
     <label><span class="lb" data-i="pin">Município</span><select id="municipio"></select></label>
     <label><span class="lb" data-i="pessoas">Supervisor</span><select id="supervisor"></select></label>
     <label><span class="lb" data-i="pessoa">Técnico responsável</span><select id="tecnico"></select></label>
@@ -208,7 +211,11 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
     <div class="graf" id="mapaBox" style="margin-bottom:16px"><div class="g-topo"><span class="ico g" style="--cor:#0b7a80" data-i="pin"></span><div class="g-tit"><h2>Mapa do Ceará</h2><p class="formula" id="mapaSub"></p></div>
       <div class="seg" id="mapaModo"><button class="on" data-m="prop">Propriedades por atividade</button><button data-m="tec">Técnicos por atividade</button></div></div>
       <div class="mapa-grade"><div id="mapaCE"></div><div id="mapaLeg" class="mapa-leg"></div></div><p class="formula" id="mapaMsg" style="margin:6px 4px 0"></p></div>
-    <div class="grid2"><div class="graf"><div class="g-topo"><div class="g-tit"><h2>15 municípios com mais visitas</h2></div></div><div class="cv alto"><canvas id="gMun"></canvas></div></div><div class="graf"><div class="g-topo"><div class="g-tit"><h2>Municípios</h2></div><button class="btn sec" data-csv="mun">CSV</button></div><div class="tw" style="max-height:520px"><table id="tMun"></table></div></div></div></section>
+    <div class="grid2"><div class="graf"><div class="g-topo"><div class="g-tit"><h2>15 municípios com mais visitas</h2></div></div><div class="cv alto"><canvas id="gMun"></canvas></div></div><div class="graf"><div class="g-topo"><div class="g-tit"><h2>Municípios</h2></div><button class="btn sec" data-csv="mun">CSV</button></div><div class="tw" style="max-height:520px"><table id="tMun"></table></div></div></div>
+    <div class="grid2" id="regSindBox" style="margin-top:16px;display:none">
+      <div class="graf"><div class="g-topo"><div class="g-tit"><h2>Regiões (FAEC)</h2></div><button class="btn sec" data-csv="reg">CSV</button></div><div class="tw" style="max-height:420px"><table id="tReg"></table></div></div>
+      <div class="graf"><div class="g-topo"><div class="g-tit"><h2>Sindicatos</h2></div><button class="btn sec" data-csv="sind">CSV</button></div><div class="tw" style="max-height:420px"><table id="tSind"></table></div></div>
+    </div></section>
   <section class="painel" id="p-perf">
     <div class="kpis" style="grid-template-columns:repeat(2,minmax(0,260px))"><div class="kpi" style="--cor:#2f7d4f"><div class="k-topo"><span class="ico" data-i="pessoas"></span><span class="k-rot">Total de produtores</span></div><b id="pfTotP">-</b><div class="k-var"><small>com visita no período</small></div></div>
       <div class="kpi" style="--cor:#16472a"><div class="k-topo"><span class="ico" data-i="casa"></span><span class="k-rot">Total de propriedades</span></div><b id="pfTotE">-</b><div class="k-var"><small>com visita no período</small></div></div></div>
@@ -221,6 +228,18 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
       <div class="graf"><div class="g-topo"><div class="g-tit"><h2>Status da propriedade</h2></div></div><div class="cv" style="height:260px"><canvas id="gPfSt"></canvas></div></div>
     </div>
     <p class="formula" id="pfMsg" style="margin:8px 4px"></p>
+  </section>
+  <section class="painel" id="p-desemp">
+    <div class="graf">
+      <div class="g-topo"><span class="ico g" style="--cor:#a23b72" data-i="estrela"></span>
+        <div class="g-tit"><h2>Desempenho dos técnicos</h2><p class="formula" id="dInfo"></p></div>
+        <div style="margin-left:auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-end">
+          <label style="display:flex;gap:6px;align-items:center;white-space:nowrap;font-size:.85rem">Mês do ranking <select id="dPer" style="min-width:150px"></select></label>
+          <input type="search" id="dBusca" placeholder="Buscar técnico..." style="min-width:200px;padding:7px 10px">
+          <button class="btn sec" id="dCsv">CSV</button></div></div>
+      <div class="tw" style="max-height:640px"><table id="tDesemp"></table></div>
+      <p class="formula" style="margin:8px 4px 0">Resultado final do ranking (nota de 0 a 10), publicado pelo ranking. Segue o filtro de supervisor e técnico acima. "Sem avaliação" = o supervisor ainda não lançou a avaliação (a nota usa só os critérios objetivos).</p>
+    </div>
   </section>
   <section class="painel" id="p-conf">
     <div class="graf">
@@ -237,8 +256,8 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
 <div class="carr" id="carr">Carregando...</div>
 <script>
 const $=id=>document.getElementById(id),nf=new Intl.NumberFormat('pt-BR'),fmt=n=>nf.format(n??0),pct=(a,b)=>b?(a/b*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%':'—';
-const TXT=['municipio','supervisor','tecnico','atividade','projeto'],SN=['coleta','presencial','ativa','situacao'];
-const NOMES={municipio:'Município',supervisor:'Supervisor',tecnico:'Técnico',atividade:'Atividade',projeto:'Projeto',coleta:'Coleta de dados',presencial:'Presencial',valida:'Válida',situacao:'Situação',ativa:'Propriedade ativa'};
+const TXT=['regiao','sindicato','municipio','supervisor','tecnico','atividade','projeto'],SN=['coleta','presencial','ativa','situacao'];
+const NOMES={regiao:'Região',sindicato:'Sindicato',municipio:'Município',supervisor:'Supervisor',tecnico:'Técnico',atividade:'Atividade',projeto:'Projeto',coleta:'Coleta de dados',presencial:'Presencial',valida:'Válida',situacao:'Situação',ativa:'Propriedade ativa'};
 const ymd=d=>d.toISOString().slice(0,10),br=s=>s.split('-').reverse().join('/'),esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 const ICONES={
  lampada:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 00-3.500 10.900c.6.500 1 1.300 1 2.100h5c0-.8.400-1.600 1-2.100A6 6 0 0012 3z"/>',
@@ -261,14 +280,14 @@ const ICONES={
 const svgIco=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES[n]||''}</svg>`;
 function pintaIcones(){document.querySelectorAll('[data-i]').forEach(el=>{if(!el.dataset.ok){el.insertAdjacentHTML('afterbegin',svgIco(el.dataset.i));el.dataset.ok=1}})}
 pintaIcones();
-let dados=null,charts={},sparkN=0,ordem={tec:['visitas',-1],sup:['visitas',-1],mun:['visitas',-1],ativ:['visitas',-1],supdet:['visitas',-1]};let supSel=null;
+let dados=null,charts={},sparkN=0,ordem={tec:['visitas',-1],sup:['visitas',-1],mun:['visitas',-1],reg:['visitas',-1],sind:['visitas',-1],ativ:['visitas',-1],supdet:['visitas',-1]};let supSel=null;
 Chart.defaults.font.family="'IBM Plex Sans',system-ui,sans-serif";Chart.defaults.color='#13241a';Chart.defaults.font.weight='500';
 const qs=()=>{const p=new URLSearchParams();[...TXT,...SN].forEach(k=>{if($(k).value)p.set(k,$(k).value)});if($('de').value)p.set('de',$('de').value);if($('ate').value)p.set('ate',$('ate').value);return p};
 async function api(u){const r=await fetch(u);if(!r.ok){let m='Erro '+r.status;try{m=(await r.json()).detail||m}catch(e){}throw new Error(m)}return r.json()}
 const erro=m=>{const e=$('erro');e.style.display=m?'block':'none';e.textContent=m||''};
 async function carregaFiltros(){
   const f=await api('/api/filtros?'+qs());
-  TXT.forEach(k=>{const s=$(k),v=s.value;s.innerHTML='<option value="">Todos</option>'+f[k].map(x=>`<option>${esc(x)}</option>`).join('');if(f[k].includes(v))s.value=v});
+  TXT.forEach(k=>{const s=$(k);if(!f[k]){s.parentElement.style.display='none';return}s.parentElement.style.display='';const v=s.value;s.innerHTML='<option value="">Todos</option>'+f[k].map(x=>`<option>${esc(x)}</option>`).join('');if(f[k].includes(v))s.value=v});
   [...TXT,...SN].forEach(k=>$(k).classList.toggle('on',!!$(k).value));
 }
 function spark(v,cor){v=v.filter(x=>x!=null);if(v.length<2)return'';const w=120,h=30,mn=Math.min(...v),mx=Math.max(...v),r=(mx-mn)||1;
@@ -325,10 +344,16 @@ function listas(){
   tabela('tSup',[['supervisor','Supervisor'],['tecnicos','Técnicos'],['propriedades','Propriedades'],['visitas','Visitas']],dados.por_supervisor,'sup','visitas');
   supDet();
   const b=$('busca').value.toLowerCase(),t=dados.por_tecnico.filter(r=>(r.tecnico+' '+(r.supervisor||'')).toLowerCase().includes(b));
-  tabela('tTec',[['tecnico','Técnico'],['supervisor','Supervisor'],['propriedades','Propriedades'],['visitas','Visitas'],['coleta_dados','Coleta'],['dias_com_visita','Dias com visita'],['ultima_visita','Última visita']],t,'tec','visitas');
-  tabela('tMun',[['municipio','Município'],['supervisores','Supervisores'],['tecnicos','Técnicos'],['atividades','Cadeias'],['propriedades','Propriedades'],['visitas','Visitas']],dados.por_municipio,'mun','visitas');
+  const temPos=t.some(r=>r.pos_geral!=null);
+  tabela('tTec',[['tecnico','Técnico'],['supervisor','Supervisor'],...(temPos?[['pos_geral','Posição geral ('+dados.ranking_periodo+')'],['nota_ranking','Nota']]:[]),['propriedades','Propriedades'],['visitas','Visitas'],['coleta_dados','Coleta'],['dias_com_visita','Dias com visita'],['ultima_visita','Última visita']],t,'tec','visitas');
+  const temReg=(dados.por_regiao||[]).length>0;
+  tabela('tMun',[['municipio','Município'],...(temReg?[['regiao','Região'],['sindicato','Sindicato']]:[]),['supervisores','Supervisores'],['tecnicos','Técnicos'],['atividades','Cadeias'],['propriedades','Propriedades'],['visitas','Visitas']],dados.por_municipio,'mun','visitas');
+  $('regSindBox').style.display=temReg?'':'none';
+  if(temReg){
+   tabela('tReg',[['regiao','Região'],['municipios','Municípios'],['supervisores','Supervisores'],['tecnicos','Técnicos'],['propriedades','Propriedades'],['visitas','Visitas']],dados.por_regiao,'reg','visitas');
+   tabela('tSind',[['sindicato','Sindicato'],['municipios','Municípios'],['supervisores','Supervisores'],['tecnicos','Técnicos'],['propriedades','Propriedades'],['visitas','Visitas']],dados.por_sindicato,'sind','visitas');}
   {const c=dados.cards,nat=(dados.por_atividade||[]).filter(r=>r.atividade&&r.atividade!=='(sem atividade)').length;
-   $('tMun').insertAdjacentHTML('beforeend',`<tfoot><tr><td class="l">Total (${fmt(dados.por_municipio.length)} municípios)</td><td>${fmt(c.supervisores)}</td><td>${fmt(c.tecnicos)}</td><td>${fmt(nat)}</td><td>${fmt(c.propriedades)}</td><td>${fmt(c.visitas)}</td></tr></tfoot>`)}
+   $('tMun').insertAdjacentHTML('beforeend',`<tfoot><tr><td class="l">Total (${fmt(dados.por_municipio.length)} municípios)</td>${temReg?'<td></td><td></td>':''}<td>${fmt(c.supervisores)}</td><td>${fmt(c.tecnicos)}</td><td>${fmt(nat)}</td><td>${fmt(c.propriedades)}</td><td>${fmt(c.visitas)}</td></tr></tfoot>`)}
 }
 function destaques(d){
   const c=d.cards,a=d.anterior,top=(r,k)=>r.length?`<b>${esc(r[0][k])}</b> (${fmt(r[0].visitas)})`:'—';
@@ -481,7 +506,7 @@ async function atualiza(){
   }catch(e){erro(e.message)}finally{$('carr').style.display='none'}
 }
 function csv(k){
-  const m={desat:[(dados.desativacoes&&dados.desativacoes.por_motivo)||[],['motivo','propriedades','percentual']],ativ:[dados.por_atividade.map(r=>{const q=dados.carteira.por_atividade.find(x=>x.nome===r.atividade)||{};return {...r,ativas:q.ativas||0,inativas:q.inativas||0,ori_total:q.ori_total||0,ori_concluida:q.ori_concluida||0}}),['atividade','municipios','supervisores','tecnicos','propriedades','ativas','inativas','visitas','ori_total','ori_concluida']],sup:[dados.por_supervisor,['supervisor','tecnicos','propriedades','visitas']],tec:[dados.por_tecnico,['tecnico','supervisor','propriedades','visitas','coleta_dados','dias_com_visita','ultima_visita']],mun:[dados.por_municipio,['municipio','tecnicos','propriedades','visitas']],assdes:[adLinhas(dados),['mes','assistidas','desativadas']],supdet:[dados.por_tecnico.filter(r=>(r.supervisor||'(sem supervisor)')===supSel),['tecnico','supervisor','propriedades','visitas','coleta_dados','dias_com_visita','ultima_visita']]}[k]||(()=>{const cc=['nome','propriedades','ativas','inativas','divergentes','ori_total','ori_concluida','ori_em_execucao','ori_aberta','ori_cancelada','ori_nao_realizada'];return[dados.carteira[{cart_ativ:'por_atividade',cart_sup:'por_supervisor',cart_tec:'por_tecnico'}[k]],cc]})();
+  const m={desat:[(dados.desativacoes&&dados.desativacoes.por_motivo)||[],['motivo','propriedades','percentual']],ativ:[dados.por_atividade.map(r=>{const q=dados.carteira.por_atividade.find(x=>x.nome===r.atividade)||{};return {...r,ativas:q.ativas||0,inativas:q.inativas||0,ori_total:q.ori_total||0,ori_concluida:q.ori_concluida||0}}),['atividade','municipios','supervisores','tecnicos','propriedades','ativas','inativas','visitas','ori_total','ori_concluida']],sup:[dados.por_supervisor,['supervisor','tecnicos','propriedades','visitas']],tec:[dados.por_tecnico,['tecnico','supervisor',...(dados.ranking_periodo?['pos_geral','nota_ranking']:[]),'propriedades','visitas','coleta_dados','dias_com_visita','ultima_visita']],mun:[dados.por_municipio,['municipio',...((dados.por_regiao||[]).length?['regiao','sindicato']:[]),'tecnicos','propriedades','visitas']],reg:[dados.por_regiao||[],['regiao','municipios','supervisores','tecnicos','propriedades','visitas']],sind:[dados.por_sindicato||[],['sindicato','municipios','supervisores','tecnicos','propriedades','visitas']],assdes:[adLinhas(dados),['mes','assistidas','desativadas']],supdet:[dados.por_tecnico.filter(r=>(r.supervisor||'(sem supervisor)')===supSel),['tecnico','supervisor','propriedades','visitas','coleta_dados','dias_com_visita','ultima_visita']]}[k]||(()=>{const cc=['nome','propriedades','ativas','inativas','divergentes','ori_total','ori_concluida','ori_em_execucao','ori_aberta','ori_cancelada','ori_nao_realizada'];return[dados.carteira[{cart_ativ:'por_atividade',cart_sup:'por_supervisor',cart_tec:'por_tecnico'}[k]],cc]})();
   const l=[m[1].join(';'),...m[0].map(r=>m[1].map(c=>`"${String(r[c]??'').replace(/"/g,'""')}"`).join(';'))];
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+l.join('\n')],{type:'text/csv;charset=utf-8'}));a.download=`visitas_${k}_${dados.periodo.de}_${dados.periodo.ate}.csv`;a.click();
 }
@@ -644,10 +669,41 @@ function inicio(d){
   if(vv!==null&&vv<=-1){if(topo.length)txt+=` O maior recuo está em ${topo[0].municipio} (−${pc(topo[0].v)}).`;txt+=' Priorize a análise por município e supervisor.'}
   $('iniTexto').textContent=txt;
 }
-function aplicaIni(){const i=document.querySelector('.aba.on');const ini=i&&(i.dataset.p==='ini'||i.dataset.p==='perf');document.querySelectorAll('.banda').forEach(e=>e.style.display=ini?'none':'')}
+function aplicaIni(){const i=document.querySelector('.aba.on');const ini=i&&(i.dataset.p==='ini'||i.dataset.p==='perf'||i.dataset.p==='desemp');document.querySelectorAll('.banda').forEach(e=>e.style.display=ini?'none':'')}
 document.querySelectorAll('.aba').forEach(b=>b.addEventListener('click',()=>setTimeout(()=>{aplicaIni();perfilProd();mapaCeara()},0)));
 $('iniVer').onclick=()=>$('iniAlertas').scrollIntoView({behavior:'smooth',block:'start'});
 aplicaIni();
+let DES=null;
+async function desempInit(){
+  try{const r=await fetch('/api/desempenho');if(!r.ok||!(await r.json()).ativo)return}catch(e){return}
+  $('abaDesemp').style.display='';
+  $('abaDesemp').addEventListener('click',()=>carregaDesemp());
+  $('dPer').onchange=()=>carregaDesemp($('dPer').value);$('dBusca').oninput=desempTabela;
+  ['supervisor','tecnico'].forEach(k=>$(k).addEventListener('change',()=>{if($('p-desemp').classList.contains('on'))carregaDesemp($('dPer').value)}));
+  $('limpar').addEventListener('click',()=>setTimeout(()=>{if($('p-desemp').classList.contains('on'))carregaDesemp($('dPer').value)},50));
+  $('dCsv').onclick=desempCsv}
+async function carregaDesemp(per){
+  const p=new URLSearchParams();if(per)p.set('periodo',per);['supervisor','tecnico'].forEach(k=>{if($(k).value)p.set(k,$(k).value)});
+  try{DES=await api('/api/desempenho?'+p)}catch(e){$('dInfo').textContent='Não consegui carregar: '+e.message;return}
+  if(!DES.tabela||!DES.periodos.length){$('dPer').innerHTML='';$('tDesemp').innerHTML='';
+    $('dInfo').textContent='Ainda não há resultado do ranking aqui. Ele chega sozinho quando um administrador abre um mês encerrado no ranking.';return}
+  const mes=s=>br(s).slice(3);const nome=x=>(x.ini.slice(0,7)===x.fim.slice(0,7)?mes(x.ini):mes(x.ini)+' a '+mes(x.fim))+(x.encerrado?'':' (parcial)');
+  $('dPer').innerHTML=DES.periodos.map(x=>`<option value="${x.ini}|${x.fim}">${nome(x)}</option>`).join('');
+  $('dPer').value=DES.periodo.ini+'|'+DES.periodo.fim;
+  const atual=DES.periodos.find(x=>x.ini===DES.periodo.ini&&x.fim===DES.periodo.fim);
+  $('dInfo').textContent=`Ranking de ${nome(DES.periodo)} · publicado em ${atual.publicado.slice(8,10)}/${atual.publicado.slice(5,7)}/${atual.publicado.slice(0,4)} ${atual.publicado.slice(11,16)}`;
+  desempTabela()}
+function desempTabela(){
+  if(!DES||!DES.linhas)return;const b=($('dBusca').value||'').toLowerCase();
+  const L=DES.linhas.filter(r=>(r.tecnico+' '+(r.supervisor||'')).toLowerCase().includes(b));
+  const f1=v=>v==null?'':Number(v).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+  $('tDesemp').innerHTML='<thead><tr><th>Posição</th><th class="l">Técnico</th><th class="l">Supervisor</th><th>Pos. no supervisor</th><th>Nota final</th><th>Avaliação do supervisor</th><th>Visitas</th><th class="l">Aviso</th></tr></thead><tbody>'+
+   L.map(r=>`<tr><td>${r.posicao_geral}º</td><td class="l">${esc(r.tecnico)}</td><td class="l">${esc(r.supervisor||'')}</td><td>${r.posicao_supervisor}º de ${r.tecnicos_no_supervisor}</td><td><b>${f1(r.nota_final)}</b></td><td>${r.sem_avaliacao?'<span class="chip">sem avaliação</span>':f1(r.avaliacao_supervisor)}</td><td>${fmt(r.visitas)}</td><td class="l">${esc(r.aviso||'')}</td></tr>`).join('')+'</tbody>'}
+function desempCsv(){
+  if(!DES||!DES.linhas)return;const c=['posicao_geral','tecnico','supervisor','posicao_supervisor','tecnicos_no_supervisor','nota_final','avaliacao_supervisor','visitas','propriedades_ativas','propriedades_inativas','pct_visitas_validas','orientacoes','pct_ori_concluidas','aviso'];
+  const l=[c.join(';'),...DES.linhas.map(r=>c.map(k=>`"${String(r[k]??(k==='avaliacao_supervisor'&&r.sem_avaliacao?'sem avaliação':'')).replace(/"/g,'""')}"`).join(';'))];
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+l.join('\n')],{type:'text/csv;charset=utf-8'}));a.download=`desempenho_${DES.periodo.ini}_${DES.periodo.fim}.csv`;a.click()}
+desempInit();
 confInit();
 inicia().catch(e=>erro(e.message));
 </script>
