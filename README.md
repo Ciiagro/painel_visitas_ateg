@@ -13,7 +13,7 @@ Nada é copiado: quando a tabela é atualizada, o painel já mostra o dado novo.
 ## Regras
 - Visita = `id_visita` distinto da tabela `acompanhamento_mensal_visitas` (a lista de visitas do SisATeG sem as visitas excluídas). Só até hoje, a partir de 01/06/2024.
 - Propriedades assistidas = `id_propriedade` distinto. Total visitas padrão = visitas que não são coleta de dados.
-- Supervisor = o da ÚLTIMA visita do técnico no SisATeG (`supervisor_atual`); se faltar, usa o do ranking (`ranking_tecnicos.ultimo_supervisor`).
+- Supervisor = o da ÉPOCA da visita: relatório mensal do técnico (`supervisor_tecnico_periodo`, a mesma planilha do ranking); se faltar, o da própria visita; depois o da última visita do técnico e, por fim, o do ranking.
 - Técnico = técnico responsável pela visita.
 
 ## Conferência com a planilha "Lista de Visitas" do SisATeG

@@ -11,10 +11,18 @@
 --   Status da propriedade (ATIVO/INATIVO) = status_propriedade_oficial; orientações = colunas ori_* (são da VISITA, juntadas por id_visita na origem:
 --     o painel conta cada id_visita uma vez, pois a tabela repete linhas)
 --   Propriedade desativada = vinculo_dt_fim preenchido (data em que o vínculo terminou) e vinculo_motivo (motivo da desativação)
---   Supervisor                = supervisor_atual da ÚLTIMA visita do técnico (o mais recente do SisATeG); se faltar, cai no ranking_tecnicos.ultimo_supervisor
+--   Supervisor                = o da ÉPOCA da visita: relatório mensal do técnico (supervisor_tecnico_periodo) -> supervisor_atual da própria visita
+--                               -> supervisor da última visita do técnico -> ranking_tecnicos.ultimo_supervisor
 -- Região/sindicato: exige a tabela public.municipio_regiao (rode sincronizar_municipios.py antes, ou sql/municipio_regiao.sql).
 -- Só entram visitas até hoje (as futuras/agendadas ficam de fora) e a partir de 01/06/2024.
 -- =====================================================================
+-- Supervisor da ÉPOCA da visita: vem da planilha "Lista de Relatório Mensal" (a mesma que o ranking usa),
+-- carregada em public.supervisor_tecnico_periodo por importar_supervisores_mensal.py (pasta do ranking).
+CREATE TABLE IF NOT EXISTS public.supervisor_tecnico_periodo (
+    nu_relatorio TEXT PRIMARY KEY, tecnico_norm TEXT NOT NULL, tecnico TEXT, supervisor TEXT NOT NULL,
+    projeto TEXT, situacao TEXT, dt_inicio DATE NOT NULL, dt_fim DATE NOT NULL, importado_em TIMESTAMP NOT NULL DEFAULT NOW());
+CREATE INDEX IF NOT EXISTS idx_stp_tecnico_periodo ON public.supervisor_tecnico_periodo (tecnico_norm, dt_inicio, dt_fim);
+
 CREATE OR REPLACE VIEW public.vw_visitas AS
 WITH v AS (
   SELECT a.id_visita,
@@ -25,7 +33,8 @@ WITH v AS (
          NULLIF(btrim(a.atividade, E' \t\r\n'), '')                AS atividade,
          NULLIF(btrim(a.municipio_propriedade, E' \t\r\n'), '')    AS municipio,
          NULLIF(btrim(a.tecnico_responsavel, E' \t\r\n'), '')      AS tecnico,
-         NULLIF(btrim(a.supervisor_atual, E' \t\r\n'), '')         AS supervisor_sisateg,
+         -- alguns nomes chegam da API com o acento perdido (&#65533;): corrige os casos conhecidos
+         replace(replace(NULLIF(btrim(a.supervisor_atual, E' \t\r\n'), ''), 'JOS&#65533;', 'JOSÉ'), 'J&#65533;NIOR', 'JÚNIOR') AS supervisor_sisateg,
          COALESCE(a.flg_coleta_dados, '')  ~* '^(s|v)'             AS coleta_dados,
          COALESCE(a.visita_presencial, '') ~* '^(s|v)'             AS presencial,
          COALESCE(a.visita_virtual, '')    ~* '^(s|v)'             AS "virtual",
@@ -59,7 +68,7 @@ WITH v AS (
     AND a.dt_visita <  (CURRENT_DATE + 1)::timestamp               -- só até hoje
 )
 SELECT v.id_visita, v.id_propriedade, v.dt_visita, v.mes, v.projeto, v.atividade, v.municipio, v.tecnico,
-       COALESCE(u.supervisor_atual, v.supervisor_sisateg, k.ultimo_supervisor) AS supervisor, v.supervisor_sisateg,
+       replace(replace(COALESCE(rp.supervisor, v.supervisor_sisateg, u.supervisor_atual, k.ultimo_supervisor), 'JOS&#65533;', 'JOSÉ'), 'J&#65533;NIOR', 'JÚNIOR') AS supervisor, v.supervisor_sisateg,
        v.coleta_dados, v.presencial, v."virtual", v.retorno, v.visita_zero, v.valida,
        v.status_sisateg, v.status_oficial, v.ori_aberta, v.ori_em_execucao, v.ori_concluida,
        v.ori_cancelada, v.ori_nao_realizada, v.ori_total,
@@ -77,7 +86,16 @@ LEFT JOIN (SELECT DISTINCT ON (tecnico) tecnico, supervisor_sisateg AS superviso
            ORDER BY tecnico, dt_visita DESC, id_visita DESC) u ON u.tecnico = v.tecnico   -- supervisor da ÚLTIMA visita do técnico
 LEFT JOIN public.ranking_tecnicos k ON btrim(k.tecnico_responsavel, E' \t\r\n') = v.tecnico
 LEFT JOIN public.municipio_regiao r ON r.nome_norm = upper(regexp_replace(btrim(translate(v.municipio,
-     'ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇáàâãäéèêëíìîïóòôõöúùûüç', 'AAAAAEEEEIIIIOOOOOUUUUCaaaaaeeeeiiiiooooouuuuc')), '\s+', ' ', 'g'));
+     'ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇáàâãäéèêëíìîïóòôõöúùûüç', 'AAAAAEEEEIIIIOOOOOUUUUCaaaaaeeeeiiiiooooouuuuc')), '\s+', ' ', 'g'))
+-- supervisor da época: relatório do técnico cujo período contém a data da visita; sem relatório, o mais recente (até 180 dias antes)
+LEFT JOIN LATERAL (
+  SELECT sp.supervisor FROM public.supervisor_tecnico_periodo sp
+  WHERE sp.tecnico_norm = btrim(regexp_replace(upper(translate(v.tecnico,
+        'ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇáàâãäéèêëíìîïóòôõöúùûüç', 'AAAAAEEEEIIIIOOOOOUUUUCaaaaaeeeeiiiiooooouuuuc')), '\s+', ' ', 'g'))
+    AND sp.dt_inicio <= v.dt_visita AND sp.dt_fim >= v.dt_visita - 180
+  ORDER BY (v.dt_visita <= sp.dt_fim) DESC, sp.dt_inicio DESC
+  LIMIT 1
+) rp ON true;
 
 -- Se existir o usuário somente-leitura do painel, libera a view para ele:
 DO $$ BEGIN
