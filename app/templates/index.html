@@ -363,7 +363,7 @@ function listas(){
   supDet();
   const b=$('busca').value.toLowerCase(),t=dados.por_tecnico.filter(r=>(r.tecnico+' '+(r.supervisor||'')).toLowerCase().includes(b));
   const temPos=false; // posição geral/nota ficam só na aba Desempenho
-  tabela('tTec',[['tecnico_sup','Técnico'],['meses_projeto','Tempo no projeto'],['propriedades','Propriedades'],['visitas','Visitas'],['coleta_dados','Coleta'],['dias_com_visita','Dias com visita'],['ultima_visita','Última visita']],t.map(r=>({...r,tecnico_sup:r.tecnico})),'tec','visitas');
+  tabela('tTec',[['tecnico_sup','Técnico'],['meses_projeto','Tempo no projeto'],['atividade','Atividade'],['propriedades','Propriedades'],['visitas','Visitas'],['coleta_dados','Coleta'],['dias_com_visita','Dias com visita'],['ultima_visita','Última visita']],t.map(r=>({...r,tecnico_sup:r.tecnico})),'tec','visitas');
   const temReg=(dados.por_regiao||[]).length>0;
   tabela('tMun',[['municipio','Município'],...(temReg?[['regiao','Região'],['sindicato','Sindicato']]:[]),['supervisores','Supervisores'],['tecnicos','Técnicos'],['atividades','Cadeias'],['propriedades','Propriedades'],['visitas','Visitas']],dados.por_municipio,'mun','visitas');
   $('regSindBox').style.display=temReg?'':'none';
