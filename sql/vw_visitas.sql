@@ -11,8 +11,7 @@
 --   Status da propriedade (ATIVO/INATIVO) = status_propriedade_oficial; orientações = colunas ori_* (são da VISITA, juntadas por id_visita na origem:
 --     o painel conta cada id_visita uma vez, pois a tabela repete linhas)
 --   Propriedade desativada = vinculo_dt_fim preenchido (data em que o vínculo terminou) e vinculo_motivo (motivo da desativação)
---   Supervisor                = 1) o da ÚLTIMA visita do técnico no mês (supervisor_atual do SisATeG, igual à planilha); sem esse dado no mês, 2) o da ÉPOCA da visita: relatório mensal do técnico (supervisor_tecnico_periodo) (só se o relatório cobre a data) -> supervisor_atual da própria visita -> relatório mais recente
---                               -> supervisor da última visita do técnico -> ranking_tecnicos.ultimo_supervisor
+--   Supervisor                = SÓ SisATeG: supervisor da ÚLTIMA visita do técnico no mês (igual à planilha); senão o da própria visita -> o da última visita do técnico -> ranking_tecnicos.ultimo_supervisor. NÃO usa o Relatório Mensal.
 -- Região/sindicato: exige a tabela public.municipio_regiao (rode sincronizar_municipios.py antes, ou sql/municipio_regiao.sql).
 -- Só entram visitas até hoje (as futuras/agendadas ficam de fora) e a partir de 01/06/2024.
 -- =====================================================================
@@ -68,7 +67,7 @@ WITH v AS (
     AND a.dt_visita <  (CURRENT_DATE + 1)::timestamp               -- só até hoje
 )
 SELECT v.id_visita, v.id_propriedade, v.dt_visita, v.mes, v.projeto, v.atividade, v.municipio, v.tecnico,
-       replace(replace(COALESCE(m.supervisor_mes, CASE WHEN rp.cobre THEN rp.supervisor END, v.supervisor_sisateg, rp.supervisor, u.supervisor_atual, k.ultimo_supervisor), 'JOS&#65533;', 'JOSÉ'), 'J&#65533;NIOR', 'JÚNIOR') AS supervisor, v.supervisor_sisateg,
+       replace(replace(COALESCE(m.supervisor_mes, v.supervisor_sisateg, u.supervisor_atual, k.ultimo_supervisor), 'JOS&#65533;', 'JOSÉ'), 'J&#65533;NIOR', 'JÚNIOR') AS supervisor, v.supervisor_sisateg,
        v.coleta_dados, v.presencial, v."virtual", v.retorno, v.visita_zero, v.valida,
        v.status_sisateg, v.status_oficial, v.ori_aberta, v.ori_em_execucao, v.ori_concluida,
        v.ori_cancelada, v.ori_nao_realizada, v.ori_total,
@@ -89,16 +88,7 @@ LEFT JOIN (SELECT DISTINCT ON (tecnico, mes) tecnico, mes, supervisor_sisateg AS
            ORDER BY tecnico, mes, dt_visita DESC, id_visita DESC) m ON m.tecnico = v.tecnico AND m.mes = v.mes   -- supervisor da ÚLTIMA visita do técnico NO MÊS (igual à planilha do SisATeG)
 LEFT JOIN public.ranking_tecnicos k ON btrim(k.tecnico_responsavel, E' \t\r\n') = v.tecnico
 LEFT JOIN public.municipio_regiao r ON r.nome_norm = upper(regexp_replace(btrim(translate(v.municipio,
-     'ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇáàâãäéèêëíìîïóòôõöúùûüç', 'AAAAAEEEEIIIIOOOOOUUUUCaaaaaeeeeiiiiooooouuuuc')), '\s+', ' ', 'g'))
--- supervisor da época: relatório do técnico cujo período contém a data da visita; sem relatório, o mais recente (até 180 dias antes)
-LEFT JOIN LATERAL (
-  SELECT sp.supervisor, (v.dt_visita <= sp.dt_fim) AS cobre FROM public.supervisor_tecnico_periodo sp
-  WHERE sp.tecnico_norm = btrim(regexp_replace(upper(translate(v.tecnico,
-        'ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇáàâãäéèêëíìîïóòôõöúùûüç', 'AAAAAEEEEIIIIOOOOOUUUUCaaaaaeeeeiiiiooooouuuuc')), '\s+', ' ', 'g'))
-    AND sp.dt_inicio <= v.dt_visita AND sp.dt_fim >= v.dt_visita - 180
-  ORDER BY (v.dt_visita <= sp.dt_fim) DESC, sp.dt_inicio DESC
-  LIMIT 1
-) rp ON true;
+     'ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇáàâãäéèêëíìîïóòôõöúùûüç', 'AAAAAEEEEIIIIOOOOOUUUUCaaaaaeeeeiiiiooooouuuuc')), '\s+', ' ', 'g'));
 
 -- Se existir o usuário somente-leitura do painel, libera a view para ele:
 DO $$ BEGIN

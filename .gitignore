@@ -11,3 +11,4 @@ sql/verifica_contagens.sql
 sql/diagnostico_supervisores.sql
 data-*.csv
 sql/diagnostico_gerlan.sql
+sql/diagnostico_giovani.sql
