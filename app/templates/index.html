@@ -69,9 +69,9 @@ select:hover,input:hover{border-color:#bfd9c8}select.on{border-color:var(--verde
 .k-var{grid-area:var;font-size:12.5px;line-height:1.25;color:var(--mut)}.k-var small{display:block;font-size:10.5px;font-weight:400}
 .spark{grid-area:spk;display:block;width:100%;height:38px}
 .pos{color:var(--pos);font-weight:600}.neg{color:var(--neg);font-weight:600}
-.abas{display:flex;gap:6px;margin:0 0 14px;overflow-x:auto;position:sticky;top:6px;z-index:30;background:linear-gradient(90deg,#14502f,#1f6a3f);padding:8px 12px;border-radius:14px;box-shadow:0 4px 14px rgba(22,71,42,.25)}
-.aba{display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;padding:9px 16px;font:inherit;font-weight:500;color:#fff;cursor:pointer;white-space:nowrap;border-radius:999px}
-.aba svg{width:19px;height:19px;stroke:#fff}.aba:hover{background:rgba(255,255,255,.14)}.aba.on{background:#2f9a5a;font-weight:700;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+.abas{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 2px;margin:0 0 14px;overflow:visible;position:sticky;top:6px;z-index:30;background:linear-gradient(90deg,#14502f,#1f6a3f);padding:8px 12px;border-radius:14px;box-shadow:0 4px 14px rgba(22,71,42,.25)}
+.aba{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;padding:8px 11px;font:inherit;font-size:.9rem;font-weight:500;color:#fff;cursor:pointer;white-space:nowrap;border-radius:999px}
+.aba svg{width:17px;height:17px;stroke:#fff}.aba:hover{background:rgba(255,255,255,.14)}.aba.on{background:#2f9a5a;font-weight:700;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
 .kpis.cart{margin-top:-6px}.kpis.cart .kpi{grid-template-areas:"topo topo" "val val" "var var"}.painel{display:none}.painel.on{display:block}
 .graficos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
 @media(min-width:1900px){.graficos{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:1100px){.graficos{grid-template-columns:1fr}}
@@ -96,6 +96,9 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
 .grid2{display:grid;grid-template-columns:minmax(300px,.8fr) minmax(480px,1.5fr);gap:16px}@media(max-width:1100px){.grid2{grid-template-columns:1fr}}
 .rod{margin-top:20px;font-size:12px;color:var(--mut);text-align:center;line-height:1.6}.erro{background:#fdecea;color:#a12;padding:10px 14px;border-radius:10px;margin:10px 0;display:none}
 .carr{position:fixed;inset:0;background:#ffffffb3;display:none;place-items:center;z-index:50;font-weight:600;color:var(--verde-esc)}
+.filtros{padding:10px 12px!important;gap:8px 10px!important;margin-bottom:12px!important}.filtros select,.filtros input{padding:6px 8px!important;font-size:13px!important;height:auto!important;min-height:34px;line-height:1.35!important}.filtros label{gap:3px!important;font-size:12.5px!important;font-weight:700!important;color:var(--verde-esc,#16472a)!important}.filtros label .lb svg{width:14px!important;height:14px!important}.filtros select,.filtros input{font-weight:500}.filtros .lb{gap:4px}.filtros .lb svg{width:12px;height:12px}.filtros .btn{padding:0 12px!important;font-size:13px!important;height:34px;white-space:nowrap}
+@media(min-width:1000px){.filtros{grid-template-columns:repeat(6,minmax(0,1fr))!important}}
+.filtros:not(.mais) label.sec{display:none}
 @media(min-width:1500px){.filtros{grid-template-columns:repeat(7,minmax(0,1fr));gap:8px 10px;padding:10px 14px}.filtros select,.filtros input{padding-top:7px!important;padding-bottom:7px!important;font-size:13px}.filtros .btn{padding:9px 10px}}
 @media(max-width:1250px){.filtros{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:900px){.filtros{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -149,14 +152,15 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
     <label><span class="lb" data-i="pessoas">Supervisor</span><select id="supervisor"></select></label>
     <label><span class="lb" data-i="pessoa">Técnico responsável</span><select id="tecnico"></select></label>
     <label><span class="lb" data-i="folha">Atividade</span><select id="atividade"></select></label>
-    <label><span class="lb" data-i="pasta">Projeto</span><select id="projeto"></select></label>
-    <label><span class="lb" data-i="nota">Coleta de dados</span><select id="coleta"><option value="">Todos</option><option value="sim">Sim</option><option value="nao">Não</option></select></label>
-    <label><span class="lb" data-i="casa">Visita presencial</span><select id="presencial"><option value="">Todos</option><option value="sim">Sim</option><option value="nao">Não</option></select></label>
-    <label><span class="lb" data-i="check">Situação da visita</span><select id="situacao"><option value="">Todas</option><option value="validas">Válida + Validada</option><option value="valida">Só Válida</option><option value="validada">Só Validada</option><option value="invalida">Inválida</option></select></label>
-    <label><span class="lb" data-i="casa">Propriedade ativa</span><select id="ativa"><option value="">Todas</option><option value="sim">Ativas</option><option value="nao">Inativas</option></select></label>
+    <label class="sec"><span class="lb" data-i="pasta">Projeto</span><select id="projeto"></select></label>
+    <label class="sec"><span class="lb" data-i="nota">Coleta de dados</span><select id="coleta"><option value="">Todos</option><option value="sim">Sim</option><option value="nao">Não</option></select></label>
+    <label class="sec"><span class="lb" data-i="casa">Visita presencial</span><select id="presencial"><option value="">Todos</option><option value="sim">Sim</option><option value="nao">Não</option></select></label>
+    <label class="sec"><span class="lb" data-i="check">Situação da visita</span><select id="situacao"><option value="">Todas</option><option value="validas">Válida + Validada</option><option value="valida">Só Válida</option><option value="validada">Só Validada</option><option value="invalida">Inválida</option></select></label>
+    <label class="sec"><span class="lb" data-i="casa">Propriedade ativa</span><select id="ativa"><option value="">Todas</option><option value="sim">Ativas</option><option value="nao">Inativas</option></select></label>
     <label><span class="lb" data-i="cal">Período rápido</span><select id="atalho"><option value="">Escolher...</option><option value="mes">Este mês</option><option value="ant">Mês anterior</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="ano">Este ano</option></select></label>
     <label><span class="lb" data-i="cal">De</span><input type="date" id="de"></label>
     <label><span class="lb" data-i="cal">Até</span><input type="date" id="ate"></label>
+    <button class="btn sec" id="maisF" type="button">Mais filtros ▾</button>
     <button class="btn" id="limpar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>Limpar filtros</button>
   </section>
   <section class="escopo"><h2 id="escTit"></h2><p id="escSub"></p><div class="chips" id="chips"></div></section>
@@ -191,6 +195,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#2f7d4f" data-i="casa"></span><div class="g-tit"><h2>Propriedades ativas e inativas</h2><p class="formula">Situação oficial de cada propriedade (cada uma conta uma vez)</p></div></div><div class="cv"><canvas id="gStatus"></canvas></div></div>
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#2b59a8" data-i="nota"></span><div class="g-tit"><h2>Orientações por situação</h2><p class="formula">Registradas nas visitas do período, com a situação atual de cada uma</p></div></div><div class="cv"><canvas id="gOri"></canvas></div></div>
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#1b7f5c" data-i="nota"></span><div class="g-tit"><h2>Orientações concluídas por atividade</h2><p class="formula">% de orientações concluídas sobre o total registrado em cada atividade</p></div></div><div class="cv"><canvas id="gOriAtv"></canvas></div></div>
+      <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#a23b72" data-i="check"></span><div class="g-tit"><h2>Técnicos que mais concluíram orientações</h2><p class="formula">Os 15 com mais orientações concluídas no período (passe o mouse para ver o total e o %)</p></div></div><div class="cv"><canvas id="gOriTec"></canvas></div></div>
     </div>
     <div class="grid2" style="grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);margin-bottom:16px;align-items:stretch">
     <div class="graf" style="margin:0"><div class="g-topo"><span class="ico g" style="--cor:#2f7d4f" data-i="casa"></span><div class="g-tit"><h2>Linha do tempo: propriedades assistidas e desativadas por mês</h2><p class="formula" id="adSub"></p></div><button class="btn sec" data-csv="assdes">CSV</button></div><div class="cv" style="height:360px"><canvas id="gAD"></canvas></div></div>
@@ -398,6 +403,9 @@ function carteira(d){
   {const A=(d.carteira.por_atividade||[]).filter(r=>r.ori_total>0).map(r=>({n:titulo(r.nome),v:r.ori_concluida/r.ori_total*100,t:r.ori_total})).sort((x,y)=>y.v-x.v);
    const rv={id:'rv',afterDatasetsDraw(ch){const c=ch.ctx;c.save();c.fillStyle='#16472a';c.font='600 11px sans-serif';c.textBaseline='middle';ch.getDatasetMeta(0).data.forEach((b,i)=>c.fillText(A[i].v.toLocaleString('pt-BR',{maximumFractionDigits:1})+'%',b.x+6,b.y));c.restore()}};
    graf('gOriAtv',{type:'bar',data:{labels:A.map(x=>x.n),datasets:[{data:A.map(x=>x.v),backgroundColor:'#1b7f5c',borderRadius:4}]},plugins:[rv],options:{indexAxis:'y',maintainAspectRatio:false,layout:{padding:{right:46}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw.toLocaleString('pt-BR',{maximumFractionDigits:1})}% de ${fmt(A[c.dataIndex].t)} orientações`}}},scales:{x:{beginAtZero:true,max:100,grid:{color:'#e8f0ea'},ticks:{callback:v=>v+'%'}},y:{grid:{display:false},ticks:{autoSkip:false,font:{size:11}}}}}})}
+  {const T=(d.carteira.por_tecnico||[]).filter(r=>r.ori_concluida>0).map(r=>({n:titulo(r.nome),c:r.ori_concluida,t:r.ori_total})).sort((x,y)=>y.c-x.c).slice(0,15);
+   const rvT={id:'rvT',afterDatasetsDraw(ch){const c=ch.ctx;c.save();c.fillStyle='#7a2455';c.font='600 11px sans-serif';c.textBaseline='middle';ch.getDatasetMeta(0).data.forEach((b,i)=>c.fillText(fmt(T[i].c),b.x+6,b.y));c.restore()}};
+   graf('gOriTec',{type:'bar',data:{labels:T.map(x=>x.n),datasets:[{label:'Orientações concluídas',data:T.map(x=>x.c),backgroundColor:'#a23b72',borderRadius:4}]},plugins:[rvT],options:{indexAxis:'y',maintainAspectRatio:false,layout:{padding:{right:46}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmt(T[c.dataIndex].c)} concluídas de ${fmt(T[c.dataIndex].t)} (${pct(T[c.dataIndex].c,T[c.dataIndex].t)})`}}},scales:{x:ey,y:{grid:{display:false},ticks:{autoSkip:false,font:{size:11}}}}}})}
   tabCart('tCartSup',d.carteira.por_supervisor,t,'Supervisor');tabCart('tCartTec',d.carteira.por_tecnico,t,'Técnico');
 }
 const DIAS=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
@@ -559,9 +567,13 @@ async function conferir(arq){
       const d=dataIso(r[C.dt]);if(!d)continue;if(d<dmin)dmin=d;if(d>dmax)dmax=d;
       sis.set(+id,{d,prj:r[C.prj],atv:r[C.atv],tec:r[C.tec],val:eVal(r[C.val])?1:0,col:eVal(r[C.col])?1:0})}
     if(!sis.size)throw new Error('Não encontrei nenhuma visita na planilha.');
+    // os filtros De/Até do painel passam a ser o período da planilha (cartões e abas ficam comparáveis com ela)
+    if($('de').value!==dmin||$('ate').value!==dmax){$('de').value=dmin;$('ate').value=dmax;$('atalho').value='';atualiza()}
     res.innerHTML=`<p class="formula">Planilha: ${fmt(sis.size)} visitas de ${br(dmin)} a ${br(dmax)}. Buscando as do painel...</p>`;
     const pj=await api(`/api/conferencia/visitas?de=${dmin}&ate=${dmax}`);
-    const pn=new Map(pj.visitas.map(v=>[v[0],{d:v[1],prj:v[2],atv:v[4],tec:v[3],val:v[5],col:v[6]}]));
+    // compara só com os técnicos que estão na planilha (planilha de um técnico só = painel só desse técnico)
+    const tecs=new Set([...sis.values()].map(a=>normc(a.tec)));
+    const pn=new Map(pj.visitas.filter(v=>tecs.has(normc(v[3]))).map(v=>[v[0],{d:v[1],prj:v[2],atv:v[4],tec:v[3],val:v[5],col:v[6]}]));
     const dif=[],cnt={so_sis:0,so_painel:0,validade:0,data:0,coleta:0},sn=x=>x?'Sim':'Não',vv=x=>x?'Válida':'Inválida';
     for(const [id,a] of sis){const b=pn.get(id);
       if(!b){cnt.so_sis++;dif.push({t:'Só no SisATeG',id,d:a.d,prj:a.prj,atv:a.atv,tec:a.tec,vs:vv(a.val),vp:'—',cs:sn(a.col),cp:'—'});continue}
@@ -570,14 +582,14 @@ async function conferir(arq){
       if(a.d!==b.d){cnt.data++;dif.push({t:'Data diferente',...base,d:a.d+' → '+b.d})}
       if(a.col!==b.col){cnt.coleta++;dif.push({t:'Coleta de dados diferente',...base})}}
     for(const [id,b] of pn)if(!sis.has(id)){cnt.so_painel++;dif.push({t:'Só no painel',id,d:b.d,prj:b.prj,atv:b.atv,tec:b.tec,vs:'—',vp:vv(b.val),cs:'—',cp:sn(b.col)})}
-    CONF_DIF=dif;confMostra({n_sis:sis.size,n_pn:pn.size,n_ign:ignoradas,dmin,dmax,cnt,arquivo:arq.name});
+    CONF_DIF=dif;confMostra({n_sis:sis.size,n_pn:pn.size,n_ign:ignoradas,dmin,dmax,cnt,arquivo:arq.name,ntec:tecs.size});
   }catch(e){res.innerHTML=`<p class="neg">${esc(e.message)}</p>`}
 }
 function confMostra(r,filtro=''){
   const c=r.cnt,ordem=['Só no SisATeG','Só no painel','Validade diferente','Data diferente','Coleta de dados diferente'];
   const caixa=(t,n)=>`<button class="btn sec" style="${filtro===t?'background:#e7f3ea;':''}" data-ft="${t}">${t}: <b>${fmt(n)}</b></button>`;
   const tot=CONF_DIF.length,lista=CONF_DIF.filter(x=>!filtro||x.t===filtro).sort((a,b)=>ordem.indexOf(a.t)-ordem.indexOf(b.t)||a.id-b.id),L=lista.slice(0,500);
-  $('confRes').innerHTML=`<p class="formula"><b>${esc(r.arquivo)}</b> · período ${br(r.dmin)} a ${br(r.dmax)} </p><div class="conf-tot" style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0">${[['Planilha SisATeG',r.n_sis],['Painel',r.n_pn],['Diferença (painel − planilha)',r.n_pn-r.n_sis]].map(([t,v])=>`<div style="background:var(--surf);border:1px solid var(--linha);border-radius:12px;padding:8px 14px;min-width:170px"><div style="font-size:12px;color:var(--mut);font-weight:600">${t}</div><b style="font-size:22px">${(v>0&&t.startsWith('Dif')?'+':'')+fmt(v)}</b></div>`).join('')}</div><p class="formula">
+  $('confRes').innerHTML=`<p class="formula"><b>${esc(r.arquivo)}</b> · período ${br(r.dmin)} a ${br(r.dmax)} · comparado só com ${r.ntec===1?'o 1 técnico':'os '+fmt(r.ntec)+' técnicos'} da planilha · os filtros De/Até do painel foram ajustados para este período</p><div class="conf-tot" style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0">${[['Planilha SisATeG',r.n_sis],['Painel (mesmos técnicos)',r.n_pn],['Diferença (painel − planilha)',r.n_pn-r.n_sis]].map(([t,v])=>`<div style="background:var(--surf);border:1px solid var(--linha);border-radius:12px;padding:8px 14px;min-width:170px"><div style="font-size:12px;color:var(--mut);font-weight:600">${t}</div><b style="font-size:22px">${(v>0&&t.startsWith('Dif')?'+':'')+fmt(v)}</b></div>`).join('')}</div><p class="formula">
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">${caixa('Só no SisATeG',c.so_sis)}${caixa('Só no painel',c.so_painel)}${caixa('Validade diferente',c.validade)}${caixa('Data diferente',c.data)}${caixa('Coleta de dados diferente',c.coleta)}
   ${filtro?'<button class="btn sec" data-ft="">Ver todas</button>':''}<button class="btn sec" id="confCsv">CSV das diferenças</button></div>
   ${tot?`<div class="tw" style="max-height:520px"><table><thead><tr>${['Tipo','ID da visita','Atividade','Projeto','Técnico','Data da visita','Válida SisATeG','Válida painel','Coleta SisATeG','Coleta painel'].map(h=>`<th style="text-align:left">${h}</th>`).join('')}</tr></thead><tbody>
@@ -673,6 +685,11 @@ function aplicaIni(){const i=document.querySelector('.aba.on');const ini=i&&(i.d
 document.querySelectorAll('.aba').forEach(b=>b.addEventListener('click',()=>setTimeout(()=>{aplicaIni();perfilProd();mapaCeara()},0)));
 $('iniVer').onclick=()=>$('iniAlertas').scrollIntoView({behavior:'smooth',block:'start'});
 aplicaIni();
+function maisContagem(){const n=['projeto','coleta','presencial','situacao','ativa'].filter(k=>$(k)&&$(k).value).length,ab=$('filtros').classList.contains('mais');$('maisF').textContent=(ab?'Menos filtros ▴':'Mais filtros ▾')+(n?` (${n})`:'')}
+$('maisF').onclick=()=>{$('filtros').classList.toggle('mais');maisContagem()};
+['projeto','coleta','presencial','situacao','ativa'].forEach(k=>$(k).addEventListener('change',maisContagem));
+$('limpar').addEventListener('click',()=>setTimeout(maisContagem,80));
+maisContagem();
 let DES=null;
 async function desempInit(){
   try{const r=await fetch('/api/desempenho');if(!r.ok||!(await r.json()).ativo)return}catch(e){return}
