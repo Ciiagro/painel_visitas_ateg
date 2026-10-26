@@ -17,3 +17,4 @@ sql/diagnostico_douglas.sql
 medir_lentidao.py
 testar_chave_supervisor.py
 *.bak_antes_chave
+sql/diagnostico_alexson.sql
