@@ -493,7 +493,8 @@ def resumo(request: Request):
             COUNT(DISTINCT tecnico) AS tecnicos, COUNT(DISTINCT id_propriedade) AS propriedades, COUNT(DISTINCT id_visita) AS visitas
             FROM {TABLE} WHERE {w} GROUP BY 1 ORDER BY 4 DESC""", p)
         por_tecnico = _linhas(con, f"""SELECT COALESCE(tecnico, '(sem técnico)') AS tecnico,
-            MAX(supervisor) AS supervisor, COUNT(DISTINCT id_propriedade) AS propriedades, COUNT(DISTINCT id_visita) AS visitas,
+            MAX(supervisor) AS supervisor, mode() WITHIN GROUP (ORDER BY projeto) AS projeto,
+            COUNT(DISTINCT id_propriedade) AS propriedades, COUNT(DISTINCT id_visita) AS visitas,
             COUNT(DISTINCT id_visita) FILTER (WHERE coleta_dados) AS coleta_dados, COUNT(DISTINCT dt_visita) AS dias_com_visita,
             MAX(dt_visita) AS ultima_visita
             FROM {TABLE} WHERE {w} GROUP BY 1 ORDER BY 4 DESC LIMIT 500""", p)

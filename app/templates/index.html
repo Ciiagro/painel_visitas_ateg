@@ -335,7 +335,7 @@ const ordena=(rows,k,d)=>[...rows].sort((x,y)=>{const a=x[k]??'',b=y[k]??'';retu
 function tabela(id,cols,rows,chave,dest){
   const [ok,od]=ordem[chave],max=Math.max(1,...rows.map(r=>r[dest]||0));
   $(id).innerHTML='<thead><tr>'+cols.map(([k,t])=>`<th data-k="${k}" class="${typeof rows[0]?.[k]==='string'&&k!=='pconc'?'l':''}">${t}${ok===k?(od>0?' ▲':' ▼'):''}</th>`).join('')+'</tr></thead><tbody>'+
-   ordena(rows,ok,od).map(r=>'<tr>'+cols.map(([k])=>{let v=r[k];const s=typeof v==='string'&&k!=='pconc';if(k==='tecnico_sup')v=esc(r.tecnico)+'<br><small class="sub">'+esc(r.supervisor||'(sem supervisor)')+'</small>';else if(k==='meses_projeto')v=v==null?'':emMeses(Math.min(v*30.44,MAX_PROJ_DIAS));else v=typeof v==='number'?fmt(v):(k==='ultima_visita'&&v?br(v):esc(v??''));if(k===dest)v+=`<span class="barra" style="width:${Math.round((r[k]||0)/max*50)}px"></span>`;return`<td class="${s?'l':''}">${v}</td>`}).join('')+'</tr>').join('')+'</tbody>';
+   ordena(rows,ok,od).map(r=>'<tr>'+cols.map(([k])=>{let v=r[k];const s=typeof v==='string'&&k!=='pconc';if(k==='tecnico_sup')v=esc(r.tecnico)+'<br><small class="sub">'+esc(r.supervisor||'(sem supervisor)')+(r.projeto?' · '+esc(r.projeto):'')+'</small>';else if(k==='meses_projeto')v=v==null?'':emMeses(Math.min(v*30.44,MAX_PROJ_DIAS));else v=typeof v==='number'?fmt(v):(k==='ultima_visita'&&v?br(v):esc(v??''));if(k===dest)v+=`<span class="barra" style="width:${Math.round((r[k]||0)/max*50)}px"></span>`;return`<td class="${s?'l':''}">${v}</td>`}).join('')+'</tr>').join('')+'</tbody>';
   $(id).querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;ordem[chave]=[k,ordem[chave][0]===k?-ordem[chave][1]:-1];listas()});
 }
 function supDet(){
