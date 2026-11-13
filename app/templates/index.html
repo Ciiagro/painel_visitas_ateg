@@ -31,6 +31,7 @@ select:hover,input:hover{border-color:#bfd9c8}select.on{border-color:var(--verde
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border:0;border-radius:9px;background:var(--verde-esc);color:#fff;font:inherit;font-weight:600;cursor:pointer;box-shadow:0 2px 6px rgba(22,71,42,.3)}
 .btn:hover{background:var(--verde)}.btn.sec{background:var(--surf);color:var(--verde-esc);border:1px solid var(--verde);box-shadow:none;padding:7px 12px;font-size:13px}.btn.sec:hover{background:#e7f3ea}
 .btn svg{width:16px;height:16px}
+.btn:disabled{opacity:.45;cursor:default;box-shadow:none}
 .escopo{margin:4px 2px 14px}.escopo h2{margin:0;font-size:24px;line-height:1.2;font-weight:700;color:var(--verde-esc);display:flex;align-items:center;gap:10px}
 .escopo h2 svg{width:30px;height:30px;color:var(--verde);flex:none}.escopo p{margin:2px 0 0 40px;color:var(--mut);font-size:13.5px}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0 40px}.chip{background:#e4f1e8;color:var(--verde-esc);border-radius:999px;padding:2px 10px;font-size:12.5px}
@@ -144,6 +145,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
     <button class="aba" data-p="tec"><span data-i="pessoa"></span>Técnicos</button>
     <button class="aba" data-p="mun"><span data-i="pin"></span>Municípios</button>
     <button class="aba" data-p="perf"><span data-i="pessoas"></span>Perfil dos produtores</button>
+    <button class="aba" data-p="down"><span data-i="download"></span>Download</button>
     <button class="aba" data-p="conf" id="abaConf" style="display:none"><span data-i="check"></span>Conferência</button>
     <button class="aba" data-p="desemp" id="abaDesemp" style="display:none"><span data-i="estrela"></span>Desempenho</button>
   </nav>
@@ -260,6 +262,19 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
       <p class="formula" style="margin:8px 4px 0">Resultado final do ranking (nota de 0 a 10), publicado pelo ranking. Segue o filtro de supervisor e técnico acima. "Sem avaliação" = o supervisor ainda não lançou a avaliação (a nota usa só os critérios objetivos).</p>
     </div>
   </section>
+  <section class="painel" id="p-down">
+    <div class="graf">
+      <div class="g-topo"><span class="ico g" style="--cor:#2f7d4f" data-i="download"></span>
+        <div class="g-tit"><h2>Download dos dados</h2><p class="formula" id="dnInfo"></p></div>
+        <div style="margin-left:auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-end">
+          <input type="search" id="dnBusca" placeholder="Buscar na tabela..." style="min-width:220px;padding:7px 10px;border:1px solid var(--linha);border-radius:8px;font:inherit;font-size:14px;background:var(--suave)">
+          <button class="btn sec" id="dnCsv" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.500 11 12 15.500 16.500 11M4 20h16"/></svg>Baixar CSV</button>
+          <button class="btn" id="dnXlsx" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.500 11 12 15.500 16.500 11M4 20h16"/></svg>Baixar Excel</button></div></div>
+      <div class="tw" style="max-height:640px"><table id="tDown"></table></div>
+      <div id="dnPag" style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;font-size:13px;color:var(--mut)"></div>
+      <p class="formula" style="margin:8px 4px 0">Uma linha para cada combinação de Região, Sindicato, Município, Supervisor, Técnico, Projeto e Atividade. Data inicial e Data final = primeira visita do técnico naquele projeto (em toda a base, não só no mês filtrado) e a última visita dele até o fim do período. Tempo no projeto = meses de calendário entre as duas datas (máx. 24). Região, Sindicato, Município, Supervisor, Técnico, Projeto e Atividade seguem os filtros acima. O CSV e o Excel levam todas as linhas, não só as da página.</p>
+    </div>
+  </section>
   <section class="painel" id="p-conf">
     <div class="graf">
       <div class="g-topo"><span class="ico g" style="--cor:#2b59a8" data-i="check"></span>
@@ -295,7 +310,8 @@ const ICONES={
  estrela:'<path d="m12 3 2.700 5.600 6.100.9-4.400 4.300 1 6.100L12 17l-5.400 2.900 1-6.100L3.200 9.500l6.100-.9z"/>',
  folha:'<path d="M5 19C5 9 11 4 20 4c0 9-5 15-15 15z"/><path d="M5 19 13 11"/>',
  pasta:'<path d="M3 6h7l2 3h9v10H3z"/>',
- tecnicos:'<circle cx="12" cy="8" r="3.500"/><path d="M5 21c0-4 3-7 7-7s7 3 7 7"/><path d="M8 5h8"/>'};
+ tecnicos:'<circle cx="12" cy="8" r="3.500"/><path d="M5 21c0-4 3-7 7-7s7 3 7 7"/><path d="M8 5h8"/>',
+ download:'<path d="M12 4v11M7.500 11 12 15.500 16.500 11M4 20h16"/>'};
 const svgIco=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES[n]||''}</svg>`;
 function pintaIcones(){document.querySelectorAll('[data-i]').forEach(el=>{if(!el.dataset.ok){el.insertAdjacentHTML('afterbegin',svgIco(el.dataset.i));el.dataset.ok=1}})}
 pintaIcones();
@@ -511,6 +527,7 @@ async function atualiza(){
   if(!$('de').value||!$('ate').value)return;
   const meu=++atuSeq;erro('');$('carr').style.display='grid';
   carregaTecIn();   // em paralelo com o resumo (não espera)
+  carregaDown();    // aba Download: também em paralelo, não depende do resumo
   try{
     await carregaFiltros();
     dados=await api('/api/resumo?'+qs());const d=dados,c=d.cards,ev=d.evolucao.pontos,dia=d.evolucao.por_dia;
@@ -531,7 +548,7 @@ async function atualiza(){
     const pa=d.por_atividade.slice().sort((a,b)=>b.visitas-a.visitas);
     barraH('gAtiv',pa,'atividade','visitas','Visitas');barraH('gSup',d.por_supervisor,'supervisor','visitas','Visitas');
     barraH('gTec',d.por_tecnico.slice(0,15),'tecnico','visitas','Visitas');barraH('gMun',d.por_municipio.slice(0,15),'municipio','visitas','Visitas');
-    destaques(d);listas();carteira(d);inicio(d);desativacoes(d);assistDes(d);perfilProd();mapaCeara();
+    destaques(d);listas();carteira(d);inicio(d);desativacoes(d);assistDes(d);perfilProd();mapaCeara();carregaDown();
     $('rod').innerHTML=`Fonte: SisATeG (acompanhamento mensal de visitas, sem visitas excluídas e sem o projeto Treinamento SP). Total de visitas padrão = visitas que não são coleta de dados. Propriedades ativas/inativas: situação oficial atual de cada propriedade visitada no período. Orientações: as registradas nas visitas do período, com a situação atual. Dados até ${br(window.__max)}.`;
   }catch(e){if(meu===atuSeq)erro(e.message)}finally{if(meu===atuSeq)$('carr').style.display='none'}
 }
@@ -703,8 +720,8 @@ function inicio(d){
   if(vv!==null&&vv<=-1){if(topo.length)txt+=` O maior recuo está em ${topo[0].municipio} (−${pc(topo[0].v)}).`;txt+=' Priorize a análise por município e supervisor.'}
   $('iniTexto').textContent=txt;
 }
-function aplicaIni(){const i=document.querySelector('.aba.on');const ini=i&&(i.dataset.p==='ini'||i.dataset.p==='perf'||i.dataset.p==='desemp');document.querySelectorAll('.banda').forEach(e=>e.style.display=ini?'none':'')}
-document.querySelectorAll('.aba').forEach(b=>b.addEventListener('click',()=>setTimeout(()=>{aplicaIni();perfilProd();mapaCeara();carregaTecIn()},0)));
+function aplicaIni(){const i=document.querySelector('.aba.on');const ini=i&&(i.dataset.p==='ini'||i.dataset.p==='perf'||i.dataset.p==='desemp'||i.dataset.p==='down');document.querySelectorAll('.banda').forEach(e=>e.style.display=ini?'none':'')}
+document.querySelectorAll('.aba').forEach(b=>b.addEventListener('click',()=>setTimeout(()=>{aplicaIni();perfilProd();mapaCeara();carregaTecIn();carregaDown()},0)));
 $('iniVer').onclick=()=>$('iniAlertas').scrollIntoView({behavior:'smooth',block:'start'});
 aplicaIni();
 function maisContagem(){const n=['projeto','coleta','presencial','situacao','ativa'].filter(k=>$(k)&&$(k).value).length,ab=$('filtros').classList.contains('mais');$('maisF').textContent=(ab?'Menos filtros ▴':'Mais filtros ▾')+(n?` (${n})`:'')}
@@ -737,6 +754,60 @@ function tecInCsv(){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+l.join('\n')],{type:'text/csv;charset=utf-8'}));a.download='tecnicos_sem_visita_recente.csv';a.click();
 }
 $('tiDias').onchange=carregaTecIn;$('tiSeguir').onchange=carregaTecIn;$('tiBusca').oninput=tecInTabela;$('tiCsv').onclick=tecInCsv;
+/* ===== Aba Download: tabela Região, Sindicato, Município, Supervisor, Técnico, Mês, Projeto, Atividade, Data inicial e final ===== */
+const DN_COLS=[['regiao','Região'],['sindicato','Sindicato'],['municipio','Município'],['supervisor','Supervisor'],['tecnico','Técnico'],['projeto','Projeto'],['atividade','Atividade'],['data_inicial','Data inicial'],['data_final','Data final'],['meses','Tempo no projeto']];
+const DN_POR_PAG=100;
+let DN=[],dnOrd=['regiao',1],dnPag=0,dnSeq=0,dnChave='',dnPend='',dnTotalBase=0,dnCortou=false;
+const dnMes=m=>m?m.slice(5,7)+'/'+m.slice(0,4):'';
+const dnTxt=(r,k)=>k==='meses'?(r.meses==null?'':mesesCal(r.meses)):k==='mes'?dnMes(r.mes):(k==='data_inicial'||k==='data_final')?(r[k]?br(r[k]):''):(r[k]??'');
+function dnLinhas(){
+  const b=normc($('dnBusca').value||''),[k,d]=dnOrd;
+  let L=DN;if(b)L=L.filter(r=>normc(DN_COLS.map(([c])=>dnTxt(r,c)).join(' ')).includes(b));
+  return [...L].sort((x,y)=>{const a=x[k],c=y[k];if(a==null&&c==null)return 0;if(a==null)return 1;if(c==null)return -1;return (typeof a==='number'&&typeof c==='number'?a-c:String(a).localeCompare(String(c),'pt-BR'))*d});
+}
+function dnTabela(){
+  const L=dnLinhas(),np=Math.max(1,Math.ceil(L.length/DN_POR_PAG));if(dnPag>=np)dnPag=np-1;if(dnPag<0)dnPag=0;
+  const ini=dnPag*DN_POR_PAG,pg=L.slice(ini,ini+DN_POR_PAG),[ok,od]=dnOrd;
+  $('tDown').innerHTML='<thead><tr>'+DN_COLS.map(([k,t])=>`<th data-k="${k}" class="l">${t}${ok===k?(od>0?' ▲':' ▼'):''}</th>`).join('')+'</tr></thead><tbody>'+
+    (pg.length?pg.map(r=>'<tr>'+DN_COLS.map(([k])=>`<td class="l">${esc(dnTxt(r,k))}</td>`).join('')+'</tr>').join(''):`<tr><td class="l" colspan="${DN_COLS.length}" style="text-align:center;color:var(--mut);padding:18px">Nenhuma linha para este filtro.</td></tr>`)+'</tbody>';
+  $('tDown').querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;dnOrd=[k,dnOrd[0]===k?-dnOrd[1]:1];dnPag=0;dnTabela()});
+  $('dnPag').innerHTML=L.length?`<button class="btn sec" id="dnAnt" type="button" ${dnPag===0?'disabled':''}>‹ Anterior</button><span>Linhas ${fmt(ini+1)} a ${fmt(Math.min(ini+DN_POR_PAG,L.length))} de ${fmt(L.length)} · página ${fmt(dnPag+1)} de ${fmt(np)}</span><button class="btn sec" id="dnProx" type="button" ${dnPag>=np-1?'disabled':''}>Próxima ›</button>`:'';
+  if($('dnAnt'))$('dnAnt').onclick=()=>{dnPag--;dnTabela()};if($('dnProx'))$('dnProx').onclick=()=>{dnPag++;dnTabela()};
+}
+async function carregaDown(forca){
+  if(!$('p-down').classList.contains('on'))return;
+  if(!$('de').value||!$('ate').value)return;
+  const q=qs().toString();if(!forca&&((q===dnChave&&DN.length)||q===dnPend))return;   // mesmo filtro (pronto ou já em andamento): não busca de novo
+  const meu=++dnSeq;dnPend=q;$('dnInfo').textContent='Carregando...';
+  try{
+    const d=await api('/api/download?'+q);if(meu!==dnSeq)return;
+    DN=d.linhas;DN.forEach(r=>{if(r.meses==null&&r.data_inicial&&r.data_final)r.meses=Math.min(24,Math.max(1,(+r.data_final.slice(0,4)-+r.data_inicial.slice(0,4))*12+(+r.data_final.slice(5,7)-+r.data_inicial.slice(5,7))+1))});dnChave=q;dnTotalBase=d.total;dnCortou=d.cortou;dnPag=0;
+    $('dnInfo').textContent=`${fmt(d.total)} linha(s) · período ${br($('de').value)} a ${br($('ate').value)}`+(d.cortou?` · mostrando só as primeiras ${fmt(d.limite)}; reduza o período ou use os filtros`:'')+(d.tem_regiao?'':' · Região e Sindicato ainda não estão na base (rode sincronizar_municipios.py)')+(d.versao>=3?'':' · ATENÇÃO: o servidor está com o main.py ANTIGO (as datas ainda seguem o mês do filtro). Troque o app/main.py e reinicie o servidor.');
+    dnTabela();
+  }catch(e){if(meu===dnSeq){DN=[];dnChave='';$('dnInfo').textContent='Não consegui carregar: '+e.message;dnTabela()}}
+  finally{if(meu===dnSeq)dnPend=''}
+}
+function dnNome(ext){return `download_visitas_${$('de').value}_${$('ate').value}.${ext}`}
+function dnCsv(){
+  const L=dnLinhas();if(!L.length)return;
+  const l=[DN_COLS.map(x=>x[1]).join(';'),...L.map(r=>DN_COLS.map(([k])=>k==='meses'?String(r.meses??''):`"${String(dnTxt(r,k)).replace(/"/g,'""')}"`).join(';'))];
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+l.join('\n')],{type:'text/csv;charset=utf-8'}));a.download=dnNome('csv');a.click();
+}
+async function dnXlsx(){
+  const L=dnLinhas();if(!L.length)return;
+  const btn=$('dnXlsx'),antes=btn.innerHTML;btn.disabled=true;btn.textContent='Gerando...';
+  try{
+    await carregaXlsx();
+    const serial=iso=>iso?Date.UTC(+iso.slice(0,4),+iso.slice(5,7)-1,+iso.slice(8,10))/864e5+25569:null;
+    const ws=XLSX.utils.aoa_to_sheet([DN_COLS.map(x=>x[1]),...L.map(r=>DN_COLS.map(([k])=>(k==='data_inicial'||k==='data_final')?'':k==='meses'?(r.meses??''):dnTxt(r,k)))]);
+    L.forEach((r,i)=>[['data_inicial',7],['data_final',8]].forEach(([k,c])=>{const v=serial(r[k]);if(v!=null)ws[XLSX.utils.encode_cell({r:i+1,c})]={t:'n',v,z:'dd/mm/yyyy'}}));
+    ws['!cols']=[18,34,22,28,30,26,30,13,13,17].map(w=>({wch:w}));
+    ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:L.length,c:DN_COLS.length-1}})};
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Download');XLSX.writeFile(wb,dnNome('xlsx'));
+  }catch(e){alert('Não consegui gerar o Excel: '+e.message)}
+  finally{btn.disabled=false;btn.innerHTML=antes}
+}
+$('dnBusca').oninput=()=>{dnPag=0;dnTabela()};$('dnCsv').onclick=dnCsv;$('dnXlsx').onclick=dnXlsx;
 let DES=null;
 async function desempInit(){
   try{const r=await fetch('/api/desempenho');if(!r.ok||!(await r.json()).ativo)return}catch(e){return}

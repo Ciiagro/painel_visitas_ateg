@@ -402,6 +402,44 @@ def desempenho(request: Request, periodo: str = ""):
     return {"ativo": True, "tabela": True, "periodos": periodos, "periodo": {"ini": ini, "fim": fim}, "linhas": linhas}
 
 
+@app.get("/api/download")
+def download(request: Request):
+    """Tabela da aba Download: uma linha por Região, Sindicato, Município, Supervisor, Técnico, Projeto e Atividade
+    (respeita todos os filtros e o período), com a data inicial/final do técnico no projeto e há quantos meses ele está nele."""
+    f, de, ate = _filtros_da_requisicao(request)
+    if not de or not ate:
+        raise HTTPException(400, "Informe de e ate (AAAA-MM-DD)")
+    de, ate = _data(de, "de"), _data(ate, "ate")
+    if ate < de:
+        raise HTTPException(400, "A data final é anterior à inicial")
+    w, p = _where(f, de=de, ate=ate)
+    # Região e sindicato só existem quando a view já tem essas colunas (ver TEXTO); senão saem vazios.
+    reg, sind = ("regiao_faec", "sindicato") if "regiao" in TEXTO else ("NULL::text", "NULL::text")
+    limite = 100000
+    # Data inicial/final = do TÉCNICO NO PROJETO (toda a base, sem o filtro de mês): 1ª visita dele no projeto e a última até o fim do período.
+    sql = f"""WITH g AS (SELECT {reg} AS regiao, {sind} AS sindicato, municipio, supervisor, tecnico, projeto, atividade
+                         FROM {TABLE} WHERE {w} GROUP BY 1, 2, 3, 4, 5, 6, 7),
+                   t AS (SELECT tecnico, projeto, MIN(dt_visita) AS data_inicial, MAX(dt_visita) AS data_final
+                         FROM {TABLE} WHERE tecnico IS NOT NULL AND dt_visita <= :ate GROUP BY 1, 2)
+              SELECT g.*, t.data_inicial, t.data_final
+              FROM g LEFT JOIN t ON t.tecnico = g.tecnico AND t.projeto IS NOT DISTINCT FROM g.projeto
+              ORDER BY g.regiao NULLS LAST, g.sindicato NULLS LAST, g.municipio NULLS LAST, g.supervisor NULLS LAST,
+                       g.tecnico NULLS LAST, g.projeto NULLS LAST, g.atividade NULLS LAST
+              LIMIT {limite + 1}"""
+    with engine.connect() as con:
+        rows = _linhas(con, sql, p)
+    cortou = len(rows) > limite
+    rows = rows[:limite]
+    for r in rows:
+        a, b = r["data_inicial"], r["data_final"]
+        # meses de calendário, do mês da 1ª visita (conta como 1º) até o da última; máx. 24 (o projeto dura no máximo 24 meses)
+        r["meses"] = min(24, max(1, (b.year - a.year) * 12 + (b.month - a.month) + 1)) if a and b else None
+        r["data_inicial"] = a.isoformat() if a else None
+        r["data_final"] = b.isoformat() if b else None
+    return {"linhas": rows, "total": len(rows), "cortou": cortou, "limite": limite,
+            "tem_regiao": "regiao" in TEXTO, "versao": 3}
+
+
 @app.get("/api/conferencia/ativo")
 def conferencia_ativo():
     return {"ativo": CONFERENCIA}
