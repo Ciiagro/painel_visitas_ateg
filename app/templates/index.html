@@ -272,7 +272,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
           <button class="btn" id="dnXlsx" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.500 11 12 15.500 16.500 11M4 20h16"/></svg>Baixar Excel</button></div></div>
       <div class="tw" style="max-height:640px"><table id="tDown"></table></div>
       <div id="dnPag" style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;font-size:13px;color:var(--mut)"></div>
-      <p class="formula" style="margin:8px 4px 0">Uma linha para cada combinação de Região, Sindicato, Município, Supervisor, Técnico, Projeto e Atividade. Data inicial e Data final = primeira visita do técnico naquele projeto (em toda a base, não só no mês filtrado) e a última visita dele até o fim do período. Tempo no projeto = meses de calendário entre as duas datas (máx. 24). Região, Sindicato, Município, Supervisor, Técnico, Projeto e Atividade seguem os filtros acima. O CSV e o Excel levam todas as linhas, não só as da página.</p>
+      <p class="formula" style="margin:8px 4px 0">Uma linha para cada combinação de Região, Sindicato, Município, Supervisor, Técnico, Projeto e Atividade. Data inicial e Data final = primeira visita do técnico naquele projeto (em toda a base, não só no mês filtrado) e a última visita dele até o fim do período. Tempo no projeto = meses de calendário entre as duas datas (máx. 24). TURMA = Projeto + Município: Início da turma = primeira visita de qualquer técnico daquele projeto naquele município; Tempo da turma = meses desde essa data até a última visita da turma (a turma não tem data final). Região, Sindicato, Município, Supervisor, Técnico, Projeto e Atividade seguem os filtros acima. O CSV e o Excel levam todas as linhas, não só as da página.</p>
     </div>
   </section>
   <section class="painel" id="p-conf">
@@ -755,11 +755,12 @@ function tecInCsv(){
 }
 $('tiDias').onchange=carregaTecIn;$('tiSeguir').onchange=carregaTecIn;$('tiBusca').oninput=tecInTabela;$('tiCsv').onclick=tecInCsv;
 /* ===== Aba Download: tabela Região, Sindicato, Município, Supervisor, Técnico, Mês, Projeto, Atividade, Data inicial e final ===== */
-const DN_COLS=[['regiao','Região'],['sindicato','Sindicato'],['municipio','Município'],['supervisor','Supervisor'],['tecnico','Técnico'],['projeto','Projeto'],['atividade','Atividade'],['data_inicial','Data inicial'],['data_final','Data final'],['meses','Tempo no projeto']];
+const DN_COLS=[['regiao','Região'],['sindicato','Sindicato'],['municipio','Município'],['supervisor','Supervisor'],['tecnico','Técnico'],['projeto','Projeto'],['atividade','Atividade'],['data_inicial','Data inicial'],['data_final','Data final'],['meses','Tempo no projeto'],['data_inicial_turma','Início da turma'],['meses_turma','Tempo da turma']];
 const DN_POR_PAG=100;
 let DN=[],dnOrd=['regiao',1],dnPag=0,dnSeq=0,dnChave='',dnPend='',dnTotalBase=0,dnCortou=false;
 const dnMes=m=>m?m.slice(5,7)+'/'+m.slice(0,4):'';
-const dnTxt=(r,k)=>k==='meses'?(r.meses==null?'':mesesCal(r.meses)):k==='mes'?dnMes(r.mes):(k==='data_inicial'||k==='data_final')?(r[k]?br(r[k]):''):(r[k]??'');
+const DN_DATAS=['data_inicial','data_final','data_inicial_turma'],DN_MESES=['meses','meses_turma'];
+const dnTxt=(r,k)=>DN_MESES.includes(k)?(r[k]==null?'':mesesCal(r[k])):k==='mes'?dnMes(r.mes):DN_DATAS.includes(k)?(r[k]?br(r[k]):''):(r[k]??'');
 function dnLinhas(){
   const b=normc($('dnBusca').value||''),[k,d]=dnOrd;
   let L=DN;if(b)L=L.filter(r=>normc(DN_COLS.map(([c])=>dnTxt(r,c)).join(' ')).includes(b));
@@ -782,7 +783,7 @@ async function carregaDown(forca){
   try{
     const d=await api('/api/download?'+q);if(meu!==dnSeq)return;
     DN=d.linhas;DN.forEach(r=>{if(r.meses==null&&r.data_inicial&&r.data_final)r.meses=Math.min(24,Math.max(1,(+r.data_final.slice(0,4)-+r.data_inicial.slice(0,4))*12+(+r.data_final.slice(5,7)-+r.data_inicial.slice(5,7))+1))});dnChave=q;dnTotalBase=d.total;dnCortou=d.cortou;dnPag=0;
-    $('dnInfo').textContent=`${fmt(d.total)} linha(s) · período ${br($('de').value)} a ${br($('ate').value)}`+(d.cortou?` · mostrando só as primeiras ${fmt(d.limite)}; reduza o período ou use os filtros`:'')+(d.tem_regiao?'':' · Região e Sindicato ainda não estão na base (rode sincronizar_municipios.py)')+(d.versao>=3?'':' · ATENÇÃO: o servidor está com o main.py ANTIGO (as datas ainda seguem o mês do filtro). Troque o app/main.py e reinicie o servidor.');
+    $('dnInfo').textContent=`${fmt(d.total)} linha(s) · período ${br($('de').value)} a ${br($('ate').value)}`+(d.cortou?` · mostrando só as primeiras ${fmt(d.limite)}; reduza o período ou use os filtros`:'')+(d.tem_regiao?'':' · Região e Sindicato ainda não estão na base (rode sincronizar_municipios.py)')+(d.versao>=4?'':' · ATENÇÃO: o servidor está com o main.py ANTIGO (as datas ainda seguem o mês do filtro). Troque o app/main.py e reinicie o servidor.');
     dnTabela();
   }catch(e){if(meu===dnSeq){DN=[];dnChave='';$('dnInfo').textContent='Não consegui carregar: '+e.message;dnTabela()}}
   finally{if(meu===dnSeq)dnPend=''}
@@ -790,7 +791,7 @@ async function carregaDown(forca){
 function dnNome(ext){return `download_visitas_${$('de').value}_${$('ate').value}.${ext}`}
 function dnCsv(){
   const L=dnLinhas();if(!L.length)return;
-  const l=[DN_COLS.map(x=>x[1]).join(';'),...L.map(r=>DN_COLS.map(([k])=>k==='meses'?String(r.meses??''):`"${String(dnTxt(r,k)).replace(/"/g,'""')}"`).join(';'))];
+  const l=[DN_COLS.map(x=>x[1]).join(';'),...L.map(r=>DN_COLS.map(([k])=>DN_MESES.includes(k)?String(r[k]??''):`"${String(dnTxt(r,k)).replace(/"/g,'""')}"`).join(';'))];
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+l.join('\n')],{type:'text/csv;charset=utf-8'}));a.download=dnNome('csv');a.click();
 }
 async function dnXlsx(){
@@ -799,9 +800,9 @@ async function dnXlsx(){
   try{
     await carregaXlsx();
     const serial=iso=>iso?Date.UTC(+iso.slice(0,4),+iso.slice(5,7)-1,+iso.slice(8,10))/864e5+25569:null;
-    const ws=XLSX.utils.aoa_to_sheet([DN_COLS.map(x=>x[1]),...L.map(r=>DN_COLS.map(([k])=>(k==='data_inicial'||k==='data_final')?'':k==='meses'?(r.meses??''):dnTxt(r,k)))]);
-    L.forEach((r,i)=>[['data_inicial',7],['data_final',8]].forEach(([k,c])=>{const v=serial(r[k]);if(v!=null)ws[XLSX.utils.encode_cell({r:i+1,c})]={t:'n',v,z:'dd/mm/yyyy'}}));
-    ws['!cols']=[18,34,22,28,30,26,30,13,13,17].map(w=>({wch:w}));
+    const ws=XLSX.utils.aoa_to_sheet([DN_COLS.map(x=>x[1]),...L.map(r=>DN_COLS.map(([k])=>DN_DATAS.includes(k)?'':DN_MESES.includes(k)?(r[k]??''):dnTxt(r,k)))]);
+    L.forEach((r,i)=>DN_DATAS.forEach(k=>{const c=DN_COLS.findIndex(x=>x[0]===k);const v=serial(r[k]);if(v!=null)ws[XLSX.utils.encode_cell({r:i+1,c})]={t:'n',v,z:'dd/mm/yyyy'}}));
+    ws['!cols']=[18,34,22,28,30,26,30,13,13,17,15,15].map(w=>({wch:w}));
     ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:L.length,c:DN_COLS.length-1}})};
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Download');XLSX.writeFile(wb,dnNome('xlsx'));
   }catch(e){alert('Não consegui gerar o Excel: '+e.message)}

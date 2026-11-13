@@ -420,9 +420,13 @@ def download(request: Request):
     sql = f"""WITH g AS (SELECT {reg} AS regiao, {sind} AS sindicato, municipio, supervisor, tecnico, projeto, atividade
                          FROM {TABLE} WHERE {w} GROUP BY 1, 2, 3, 4, 5, 6, 7),
                    t AS (SELECT tecnico, projeto, MIN(dt_visita) AS data_inicial, MAX(dt_visita) AS data_final
-                         FROM {TABLE} WHERE tecnico IS NOT NULL AND dt_visita <= :ate GROUP BY 1, 2)
-              SELECT g.*, t.data_inicial, t.data_final
+                         FROM {TABLE} WHERE tecnico IS NOT NULL AND dt_visita <= :ate GROUP BY 1, 2),
+                   -- TURMA = Projeto + Município: 1ª e última visita de qualquer técnico naquele projeto naquele município (toda a base, até o fim do período)
+                   tu AS (SELECT projeto, municipio, MIN(dt_visita) AS data_inicial_turma, MAX(dt_visita) AS data_final_turma
+                          FROM {TABLE} WHERE dt_visita <= :ate GROUP BY 1, 2)
+              SELECT g.*, t.data_inicial, t.data_final, tu.data_inicial_turma, tu.data_final_turma
               FROM g LEFT JOIN t ON t.tecnico = g.tecnico AND t.projeto IS NOT DISTINCT FROM g.projeto
+                     LEFT JOIN tu ON tu.projeto IS NOT DISTINCT FROM g.projeto AND tu.municipio IS NOT DISTINCT FROM g.municipio
               ORDER BY g.regiao NULLS LAST, g.sindicato NULLS LAST, g.municipio NULLS LAST, g.supervisor NULLS LAST,
                        g.tecnico NULLS LAST, g.projeto NULLS LAST, g.atividade NULLS LAST
               LIMIT {limite + 1}"""
@@ -436,8 +440,13 @@ def download(request: Request):
         r["meses"] = min(24, max(1, (b.year - a.year) * 12 + (b.month - a.month) + 1)) if a and b else None
         r["data_inicial"] = a.isoformat() if a else None
         r["data_final"] = b.isoformat() if b else None
+        # mesmo cálculo para a TURMA (projeto + município)
+        ta, tb = r["data_inicial_turma"], r["data_final_turma"]
+        r["meses_turma"] = min(24, max(1, (tb.year - ta.year) * 12 + (tb.month - ta.month) + 1)) if ta and tb else None
+        r["data_inicial_turma"] = ta.isoformat() if ta else None
+        r["data_final_turma"] = tb.isoformat() if tb else None
     return {"linhas": rows, "total": len(rows), "cortou": cortou, "limite": limite,
-            "tem_regiao": "regiao" in TEXTO, "versao": 3}
+            "tem_regiao": "regiao" in TEXTO, "versao": 4}
 
 
 @app.get("/api/conferencia/ativo")
