@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Relatório de atendimento por ano</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+@page{size:A4 landscape;margin:10mm}
+*{box-sizing:border-box}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;background:#eef2ee;color:#1f2a22;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;font-size:13px}
+.folha{max-width:1180px;margin:18px auto;background:#fff;padding:0 0 22px;box-shadow:0 2px 14px rgba(20,60,40,.15)}
+.topo{background:#1d5e2c;color:#fff;display:flex;align-items:center;gap:22px;padding:16px 26px}
+.topo img{height:58px;width:auto;display:block}
+.topo h1{margin:0;font-size:22px;font-weight:700;letter-spacing:.2px}
+.topo p{margin:3px 0 0;font-size:12.5px;opacity:.92}
+.corpo{padding:16px 26px 0}
+.bloco{margin:0 0 18px}
+.bloco h2{break-after:avoid}
+thead{display:table-header-group}
+tr{break-inside:avoid;page-break-inside:avoid}
+@media print{.bloco+.bloco{break-before:page;page-break-before:always;margin-top:0}.topo{break-inside:avoid}}
+.bloco h2{margin:0 0 8px;font-size:22px;font-weight:800;color:#fff;background:linear-gradient(90deg,#1d5e2c,#2f7d4f);border-left:8px solid #7cc242;border-radius:6px;padding:9px 16px;letter-spacing:.3px;text-transform:uppercase}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{background:#1d5e2c;color:#fff;font-weight:600;padding:6px 7px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+td{padding:5px 7px;text-align:right;border-bottom:1px solid #dfe7df;font-variant-numeric:tabular-nums}
+tbody tr:nth-child(even) td{background:#f3f7f1}
+td.t,th.t{border-left:2px solid #b9cdb9;font-weight:700}
+tr.tot td{background:#e3efdc!important;font-weight:700;border-top:2px solid #1d5e2c}
+.nota{margin:8px 0 0;font-size:11px;color:#51604f;line-height:1.5}
+.rodape{margin:6px 26px 0;border-top:1px solid #cfdccf;padding-top:8px;font-size:11px;color:#51604f}
+.barra{max-width:1180px;margin:14px auto 0;display:flex;justify-content:flex-end;gap:10px}
+.barra button{background:#1d5e2c;color:#fff;border:0;border-radius:8px;padding:9px 16px;font-size:13.5px;cursor:pointer}
+@media print{.topo{padding:8px 18px}.topo img{height:42px}.topo h1{font-size:18px}.corpo{padding:8px 0 0}.bloco{margin:0}.bloco h2{font-size:16px;padding:5px 12px;margin:0 0 5px}td{padding:3px 7px}th{padding:5px 7px}.nota{margin:4px 0 0;font-size:10px}.rodape{margin:4px 0 0;padding-top:4px}.folha{padding:0}body{background:#fff}.folha{margin:0;box-shadow:none;max-width:none}.barra{display:none}}
+</style>
+</head>
+<body>
+<div class="barra"><button onclick="window.print()">Imprimir / salvar em PDF</button></div>
+<div class="folha">
+  <div class="topo">
+    <img src="/img/senar-branca.png" alt="SENAR Ceará">
+    <div>
+      <h1>Relatório de atendimento por ano</h1>
+      <p>Visitas, propriedades assistidas e municípios atendidos · Todas as atividades · {{ periodo }}</p>
+    </div>
+  </div>
+  <div class="corpo">
+  {% for b in blocos %}
+    <section class="bloco">
+      <h2>{{ b.titulo }}</h2>
+      <table>
+        <thead><tr><th>Atividade</th>{% for a in anos %}<th>{{ a }}</th>{% endfor %}<th class="t">Total</th></tr></thead>
+        <tbody>
+        {% for r in b.linhas %}
+          <tr><td>{{ r.atividade }}</td>{% for v in r.valores %}<td>{{ v|milhar }}</td>{% endfor %}<td class="t">{{ r.total|milhar }}</td></tr>
+        {% endfor %}
+          <tr class="tot"><td>Todas as atividades</td>{% for v in b.totais %}<td>{{ v|milhar }}</td>{% endfor %}<td class="t">{{ b.geral|milhar }}</td></tr>
+        </tbody>
+      </table>
+      {% if b.nota %}<p class="nota">{{ b.nota }}</p>{% endif %}
+    </section>
+  {% endfor %}
+  </div>
+  <div class="rodape">
+    Fonte: SisATeG (acompanhamento mensal de visitas, sem visitas excluídas). Dados até {{ ate }}. Gerado em {{ gerado }}.
+    {% if not completo %}<br><b>Atenção:</b> a base completa ainda não está ativa; só aparecem visitas de 2024 em diante.{% endif %}
+  </div>
+</div>
+</body>
+</html>

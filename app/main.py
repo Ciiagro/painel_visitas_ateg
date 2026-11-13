@@ -402,6 +402,95 @@ def desempenho(request: Request, periodo: str = ""):
     return {"ativo": True, "tabela": True, "periodos": periodos, "periodo": {"ini": ini, "fim": fim}, "linhas": linhas}
 
 
+ANUAL = os.environ.get("TABLE_ANUAL", "public.vw_visitas_anual")
+ANUAL_TXT = ("municipio", "tecnico", "atividade", "projeto")
+
+
+@app.get("/api/por-ano")
+def por_ano(request: Request):
+    """Visitas, propriedades e municípios por ano, SEM filtro de período e desde o início da base.
+    Lê a view leve public.vw_visitas_anual (sql/vw_visitas_anual.sql); se ela ainda não existe, cai na vw_visitas (só 2024 em diante).
+    Valem os filtros de município, técnico, atividade, projeto, coleta, presencial e válida; os demais não existem nessa view."""
+    f, _de, _ate = _filtros_da_requisicao(request)
+    with engine.connect() as con:
+        completo = bool(con.execute(text("SELECT to_regclass(:t) IS NOT NULL"), {"t": ANUAL}).scalar())
+        tabela = ANUAL if completo else TABLE
+        w, p = ["dt_visita IS NOT NULL"], {}
+        for k in ANUAL_TXT:
+            if f.get(k):
+                w.append(f"{k} = :{k}"); p[k] = f[k]
+        for k, col in SIMNAO.items():
+            v = (f.get(k) or "").lower()
+            if v in ("sim", "nao"):
+                w.append(f"{col} IS {'TRUE' if v == 'sim' else 'FALSE'}")
+        w = " AND ".join(w)
+        anos = _linhas(con, f"""SELECT EXTRACT(YEAR FROM dt_visita)::int AS ano, COUNT(DISTINCT id_visita) AS visitas,
+            COUNT(DISTINCT id_propriedade) AS propriedades, COUNT(DISTINCT municipio) AS municipios,
+            MIN(dt_visita)::text AS primeira, MAX(dt_visita)::text AS ultima
+            FROM {tabela} WHERE {w} GROUP BY 1 ORDER BY 1""", p)
+        total = _linhas(con, f"""SELECT COUNT(DISTINCT id_visita) AS visitas, COUNT(DISTINCT id_propriedade) AS propriedades,
+            COUNT(DISTINCT municipio) AS municipios, MIN(dt_visita)::text AS primeira, MAX(dt_visita)::text AS ultima
+            FROM {tabela} WHERE {w}""", p)[0]
+    ignorados = [k for k in ("regiao", "sindicato", "supervisor", "ativa", "situacao") if f.get(k)]
+    return {"anos": anos, "total": total, "completo": completo, "ignorados": ignorados}
+
+
+templates.env.filters["milhar"] = lambda v: "–" if not v else f"{int(v):,}".replace(",", ".")
+
+
+@app.get("/api/por-ano-atividade")
+def por_ano_atividade(request: Request):
+    """Visitas, propriedades e municípios por atividade e por ano (sem filtros, desde o início da base)."""
+    with engine.connect() as con:
+        completo = bool(con.execute(text("SELECT to_regclass(:t) IS NOT NULL"), {"t": ANUAL}).scalar())
+        tab = ANUAL if completo else TABLE
+        atv = "COALESCE(atividade, '(sem atividade)')"
+        ano = "EXTRACT(YEAR FROM dt_visita)::int"
+        metr = "COUNT(DISTINCT id_visita) AS visitas, COUNT(DISTINCT id_propriedade) AS propriedades, COUNT(DISTINCT municipio) AS municipios"
+        cel = _linhas(con, f"SELECT {atv} AS k, {ano} AS ano, {metr} FROM {tab} WHERE dt_visita IS NOT NULL GROUP BY 1, 2", {})
+        tot = {r["k"]: r for r in _linhas(con, f"SELECT {atv} AS k, {metr} FROM {tab} WHERE dt_visita IS NOT NULL GROUP BY 1", {})}
+    anos = sorted({r["ano"] for r in cel})
+    mapa = {(r["k"], r["ano"]): r for r in cel}
+    ativs = sorted(tot, key=lambda k: (-tot[k]["visitas"], k))
+    linhas = [{"atividade": k, "total": {m: tot[k][m] for m in ("visitas", "propriedades", "municipios")},
+               "anos": {str(a): {m: (mapa.get((k, a)) or {}).get(m, 0) for m in ("visitas", "propriedades", "municipios")} for a in anos}}
+              for k in ativs]
+    return {"anos": anos, "linhas": linhas, "completo": completo}
+
+
+@app.get("/relatorio/por-ano", response_class=HTMLResponse)
+def relatorio_por_ano(request: Request):
+    """Relatório para imprimir/salvar em PDF (com a logo do SENAR): visitas, propriedades e municípios
+    por atividade e por ano, desde o início da base, sem percentuais. Não segue os filtros do painel."""
+    from datetime import datetime, timezone as _tz
+    with engine.connect() as con:
+        completo = bool(con.execute(text("SELECT to_regclass(:t) IS NOT NULL"), {"t": ANUAL}).scalar())
+        tab = ANUAL if completo else TABLE
+        atv = "COALESCE(atividade, '(sem atividade)')"
+        ano = "EXTRACT(YEAR FROM dt_visita)::int"
+        metr = "COUNT(DISTINCT id_visita) AS visitas, COUNT(DISTINCT id_propriedade) AS propriedades, COUNT(DISTINCT municipio) AS municipios"
+        cel = _linhas(con, f"SELECT {atv} AS k, {ano} AS ano, {metr} FROM {tab} WHERE dt_visita IS NOT NULL GROUP BY 1, 2", {})
+        por_atv = {r["k"]: r for r in _linhas(con, f"SELECT {atv} AS k, {metr} FROM {tab} WHERE dt_visita IS NOT NULL GROUP BY 1", {})}
+        por_ano_ = {r["ano"]: r for r in _linhas(con, f"SELECT {ano} AS ano, {metr} FROM {tab} WHERE dt_visita IS NOT NULL GROUP BY 1", {})}
+        geral = _linhas(con, f"SELECT {metr}, MIN(dt_visita)::date AS primeira, MAX(dt_visita)::date AS ultima FROM {tab} WHERE dt_visita IS NOT NULL", {})[0]
+    anos = sorted(por_ano_)
+    atividades = sorted(por_atv, key=lambda k: (-por_atv[k]["visitas"], k))
+    mapa = {(r["k"], r["ano"]): r for r in cel}
+    blocos = []
+    for chave, titulo, nota in (
+        ("visitas", "Total de visitas", ""),
+        ("propriedades", "Total de propriedades assistidas", "Uma propriedade conta uma vez em cada atividade e ano; no total geral e na linha de totais ela conta uma vez só, por isso as somas podem ser maiores que o total."),
+        ("municipios", "Total de municípios atendidos", "Um município conta uma vez em cada atividade e ano; nos totais ele conta uma vez só."),
+    ):
+        linhas = [{"atividade": k, "valores": [(mapa.get((k, a)) or {}).get(chave, 0) for a in anos], "total": por_atv[k][chave]} for k in atividades]
+        blocos.append({"titulo": titulo, "linhas": linhas, "totais": [por_ano_[a][chave] for a in anos], "geral": geral[chave], "nota": nota})
+    br = lambda d: d.strftime("%d/%m/%Y") if d else ""
+    agora = datetime.now(_tz(timedelta(hours=-3)))
+    return templates.TemplateResponse(request, "relatorio_por_ano.html", {
+        "anos": anos, "blocos": blocos, "completo": completo,
+        "periodo": f"{br(geral['primeira'])} a {br(geral['ultima'])}", "ate": br(geral["ultima"]), "gerado": agora.strftime("%d/%m/%Y às %H:%M")})
+
+
 @app.get("/api/download")
 def download(request: Request):
     """Tabela da aba Download: uma linha por Região, Sindicato, Município, Supervisor, Técnico, Projeto e Atividade

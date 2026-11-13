@@ -119,6 +119,13 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
 .leg{display:flex;gap:6px;margin-left:auto}
 #limpar{grid-column:-2/-1}
 @media(max-width:900px){ #limpar{grid-column:1/-1}}
+/* destaque dos 3 indicadores da aba Por ano */
+#p-ano .kpis{gap:18px;margin-bottom:22px}
+#p-ano .kpis .kpi{padding:18px 22px 16px;border-top:5px solid var(--cor);border-radius:16px;box-shadow:0 6px 18px rgba(20,60,40,.14);grid-template-areas:"topo topo" "val val" "var var"}
+#p-ano .kpis .kpi .ico{width:46px;height:46px}#p-ano .kpis .kpi .ico svg{width:24px;height:24px}
+#p-ano .kpis .kpi .k-rot{font-size:15px;font-weight:600;color:var(--cor)}
+#p-ano .kpis .kpi>b{font-size:clamp(34px,22cqw,52px);color:var(--cor);margin:10px 0 4px;letter-spacing:-.02em}
+#p-ano .kpis .kpi .k-var{font-size:12.5px}#p-ano .kpis .kpi .k-var small{font-size:12px}
 .kpis.k4{grid-template-columns:repeat(4,minmax(0,1fr))}@media(max-width:560px){.kpis.k4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.insight{flex-wrap:wrap}.insight .btn{margin-left:0}.rank{grid-template-columns:22px 1fr 44px 70px}.rank .bar{display:none}}
 </style>
@@ -138,6 +145,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
   <nav class="abas" id="abas">
     <button class="aba on" data-p="ini"><span data-i="casa"></span>Início</button>
     <button class="aba" data-p="graf"><span data-i="barras"></span>Gráficos</button>
+    <button class="aba" data-p="ano"><span data-i="cal"></span>Por ano</button>
     <button class="aba" data-p="dest"><span data-i="estrela"></span>Destaques do período</button>
     <button class="aba" data-p="cart"><span data-i="check"></span>Propriedades e orientações</button>
     <button class="aba" data-p="ativ"><span data-i="folha"></span>Atividades</button>
@@ -192,6 +200,19 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#0b7a80" data-i="cal"></span><div class="g-tit"><h2>Visitas por dia da semana</h2></div></div><div class="cv"><canvas id="gDow"></canvas></div></div>
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#a23b72" data-i="repetir"></span><div class="g-tit"><h2>Quantas vezes cada propriedade foi visitada</h2><p class="formula">Propriedades por número de visitas no período</p></div></div><div class="cv"><canvas id="gFreq"></canvas></div></div>
     </div>
+  </section>
+  <section class="painel" id="p-ano">
+    <div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <div class="kpi" style="--cor:#16472a"><div class="k-topo"><span class="ico" data-i="casa"></span><span class="k-rot">Total de propriedades</span></div><b id="anoTP">-</b><div class="k-var"><small id="anoTPs"></small></div></div>
+      <div class="kpi" style="--cor:#2f7d4f"><div class="k-topo"><span class="ico" data-i="prancheta"></span><span class="k-rot">Total de visitas</span></div><b id="anoTV">-</b><div class="k-var"><small id="anoTVs"></small></div></div>
+      <div class="kpi" style="--cor:#c9730a"><div class="k-topo"><span class="ico" data-i="pin"></span><span class="k-rot">Total de municípios</span></div><b id="anoTM">-</b><div class="k-var"><small id="anoTMs"></small></div></div>
+    </div>
+    <div class="graf" style="margin-bottom:16px"><div class="g-topo"><span class="ico g" style="--cor:#2f7d4f" data-i="barras"></span><div class="g-tit"><h2>Evolução por ano</h2><p class="formula">Visitas, propriedades assistidas e municípios atendidos em cada ano. Não segue o filtro de período.</p></div></div><div class="cv" style="height:340px"><canvas id="gAno"></canvas></div></div>
+    <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#0b7a80" data-i="cal"></span><div class="g-tit"><h2>Resumo por ano</h2></div><a class="btn" href="/relatorio/por-ano" target="_blank" style="margin-left:auto;text-decoration:none" title="Abre o relatório com a logo do SENAR para imprimir ou salvar em PDF">Gerar relatório (PDF)</a></div><div class="tw"><table id="tAno"></table></div>
+      <p class="formula" id="anoMsg" style="margin:8px 4px 0"></p></div>
+    <div class="graf" style="margin-top:16px"><div class="g-topo"><span class="ico g" style="--cor:#16472a" data-i="prancheta"></span><div class="g-tit"><h2>Por atividade e ano</h2><p class="formula">Cada atividade em uma linha, com os anos nas colunas. Não segue o filtro de período.</p></div>
+      <select id="anoAtvM" style="margin-left:auto"><option value="visitas">Visitas</option><option value="propriedades">Propriedades</option><option value="municipios">Municípios</option></select></div>
+      <div class="tw"><table id="tAnoAtv"></table></div></div>
   </section>
   <section class="painel" id="p-dest"><div class="destaques" id="dest"></div></section>
   <section class="painel" id="p-cart">
@@ -548,7 +569,7 @@ async function atualiza(){
     const pa=d.por_atividade.slice().sort((a,b)=>b.visitas-a.visitas);
     barraH('gAtiv',pa,'atividade','visitas','Visitas');barraH('gSup',d.por_supervisor,'supervisor','visitas','Visitas');
     barraH('gTec',d.por_tecnico.slice(0,15),'tecnico','visitas','Visitas');barraH('gMun',d.por_municipio.slice(0,15),'municipio','visitas','Visitas');
-    destaques(d);listas();carteira(d);inicio(d);desativacoes(d);assistDes(d);perfilProd();mapaCeara();carregaDown();
+    destaques(d);listas();carteira(d);inicio(d);desativacoes(d);assistDes(d);perfilProd();carregaAno();mapaCeara();carregaDown();
     $('rod').innerHTML=`Fonte: SisATeG (acompanhamento mensal de visitas, sem visitas excluídas e sem o projeto Treinamento SP). Total de visitas padrão = visitas que não são coleta de dados. Propriedades ativas/inativas: situação oficial atual de cada propriedade visitada no período. Orientações: as registradas nas visitas do período, com a situação atual. Dados até ${br(window.__max)}.`;
   }catch(e){if(meu===atuSeq)erro(e.message)}finally{if(meu===atuSeq)$('carr').style.display='none'}
 }
@@ -720,8 +741,8 @@ function inicio(d){
   if(vv!==null&&vv<=-1){if(topo.length)txt+=` O maior recuo está em ${topo[0].municipio} (−${pc(topo[0].v)}).`;txt+=' Priorize a análise por município e supervisor.'}
   $('iniTexto').textContent=txt;
 }
-function aplicaIni(){const i=document.querySelector('.aba.on');const ini=i&&(i.dataset.p==='ini'||i.dataset.p==='perf'||i.dataset.p==='desemp'||i.dataset.p==='down');document.querySelectorAll('.banda').forEach(e=>e.style.display=ini?'none':'')}
-document.querySelectorAll('.aba').forEach(b=>b.addEventListener('click',()=>setTimeout(()=>{aplicaIni();perfilProd();mapaCeara();carregaTecIn();carregaDown()},0)));
+function aplicaIni(){const i=document.querySelector('.aba.on');const ini=i&&(i.dataset.p==='ini'||i.dataset.p==='perf'||i.dataset.p==='desemp'||i.dataset.p==='ano'||i.dataset.p==='down');document.querySelectorAll('.banda').forEach(e=>e.style.display=ini?'none':'')}
+document.querySelectorAll('.aba').forEach(b=>b.addEventListener('click',()=>setTimeout(()=>{aplicaIni();perfilProd();carregaAno();mapaCeara();carregaTecIn();carregaDown()},0)));
 $('iniVer').onclick=()=>$('iniAlertas').scrollIntoView({behavior:'smooth',block:'start'});
 aplicaIni();
 function maisContagem(){const n=['projeto','coleta','presencial','situacao','ativa'].filter(k=>$(k)&&$(k).value).length,ab=$('filtros').classList.contains('mais');$('maisF').textContent=(ab?'Menos filtros ▴':'Mais filtros ▾')+(n?` (${n})`:'')}
@@ -839,6 +860,48 @@ function desempCsv(){
   if(!DES||!DES.linhas)return;const c=['posicao_geral','tecnico','supervisor','posicao_supervisor','tecnicos_no_supervisor','nota_final','avaliacao_supervisor','visitas','propriedades_ativas','propriedades_inativas','pct_visitas_validas','orientacoes','pct_ori_concluidas','aviso'];
   const l=[c.join(';'),...DES.linhas.map(r=>c.map(k=>`"${String(r[k]??(k==='avaliacao_supervisor'&&r.sem_avaliacao?'sem avaliação':'')).replace(/"/g,'""')}"`).join(';'))];
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+l.join('\n')],{type:'text/csv;charset=utf-8'}));a.download=`desempenho_${DES.periodo.ini}_${DES.periodo.fim}.csv`;a.click()}
+// Aba "Por ano": totais e evolução de todos os anos, sem filtro de período (os outros filtros valem).
+let _atvDados=null;
+function pintaAnoAtv(){
+  if(!_atvDados)return;const m=$('anoAtvM').value,D=_atvDados;
+  $('tAnoAtv').innerHTML='<thead><tr><th>Atividade</th>'+D.anos.map(a=>`<th>${a}</th>`).join('')+'<th>Total</th></tr></thead><tbody>'+
+    D.linhas.map(r=>`<tr><td><b>${r.atividade}</b></td>`+D.anos.map(a=>{const v=r.anos[a][m];return `<td>${v?fmt(v):'–'}</td>`}).join('')+`<td><b>${fmt(r.total[m])}</b></td></tr>`).join('')+'</tbody>';
+}
+async function carregaAnoAtv(){
+  try{_atvDados=await api('/api/por-ano-atividade');pintaAnoAtv()}catch(e){$('tAnoAtv').innerHTML='<tbody><tr><td>Não consegui carregar: '+e.message+'</td></tr></tbody>'}
+}
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='anoAtvM')pintaAnoAtv()});
+async function carregaAno(){
+  const ab=document.querySelector('.aba.on');if(!ab||ab.dataset.p!=='ano')return;
+  const msg=$('anoMsg');msg.textContent='Carregando...';
+  carregaAnoAtv();
+  const p=qs();p.delete('de');p.delete('ate');
+  try{
+    const d=await api('/api/por-ano?'+p),A=d.anos,T=d.total;
+    const dbr=s=>s?s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4):'';
+    $('anoTP').textContent=fmt(T.propriedades);$('anoTV').textContent=fmt(T.visitas);$('anoTM').textContent=fmt(T.municipios);
+    const ref=T.primeira?`de ${dbr(T.primeira)} a ${dbr(T.ultima)}`:'';
+    ['anoTPs','anoTVs','anoTMs'].forEach(id=>$(id).textContent=ref);
+    if(!A.length){msg.textContent='Nenhuma visita com esses filtros.';$('tAno').innerHTML='';if(charts.gAno){charts.gAno.destroy();delete charts.gAno}return}
+    const ult=A[A.length-1].ano,ini=A[0].ano;
+    const parcial=a=>(a.ano===ini&&a.primeira>`${a.ano}-02-15`)||(a.ano===ult&&a.ultima<`${a.ano}-12-20`);
+    graf('gAno',{type:'bar',data:{labels:A.map(a=>a.ano+(parcial(a)?'*':'')),datasets:[
+      {type:'bar',label:'Visitas',data:A.map(a=>a.visitas),backgroundColor:'#2f7d4f',borderRadius:4,yAxisID:'y'},
+      {type:'bar',label:'Propriedades',data:A.map(a=>a.propriedades),backgroundColor:'#c9730a',borderRadius:4,yAxisID:'y'},
+      {type:'line',label:'Municípios',data:A.map(a=>a.municipios),borderColor:'#7a5ba6',backgroundColor:'#7a5ba6',tension:.25,pointRadius:5,yAxisID:'y1'}]},
+      options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt(c.raw)}`}}},
+        scales:{y:{beginAtZero:true,title:{display:true,text:'Visitas e propriedades'},ticks:{callback:v=>fmt(v)}},
+          y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'Municípios'}}}}});
+    const vari=(a,i)=>{if(!i)return '—';const b=A[i-1];if(parcial(a)||parcial(b)||!b.visitas)return '—';
+      const v=(a.visitas-b.visitas)/b.visitas*100;return `${v>=0?'▲':'▼'} ${Math.abs(v).toLocaleString('pt-BR',{maximumFractionDigits:1})}%`};
+    $('tAno').innerHTML='<thead><tr><th>Ano</th><th>Visitas</th><th>Propriedades</th><th>Municípios</th><th>Variação das visitas</th></tr></thead><tbody>'+
+      A.map((a,i)=>`<tr><td><b>${a.ano}${parcial(a)?'*':''}</b></td><td>${fmt(a.visitas)}</td><td>${fmt(a.propriedades)}</td><td>${fmt(a.municipios)}</td><td>${vari(a,i)}</td></tr>`).join('')+
+      `<tr><td><b>Total</b></td><td><b>${fmt(T.visitas)}</b></td><td><b>${fmt(T.propriedades)}</b></td><td><b>${fmt(T.municipios)}</b></td><td>—</td></tr></tbody>`;
+    const notas=A.filter(parcial).map(a=>`${a.ano}: de ${dbr(a.primeira)} a ${dbr(a.ultima)}`);
+    msg.textContent=(notas.length?`* Ano incompleto (${notas.join('; ')}); a variação só compara anos completos. `:'')+'No total, propriedades e municípios são contados uma vez só, mesmo que apareçam em vários anos. '+(d.completo?'':'ATENÇÃO: só aparecem visitas de 2024 em diante; rode sql/vw_visitas_anual.sql no servidor para ver desde o início da base. ')+(d.ignorados&&d.ignorados.length?`Nesta aba não valem os filtros: ${d.ignorados.join(', ')}.`:'');
+  }catch(e){msg.textContent='Não consegui carregar: '+e.message}
+}
 desempInit();
 confInit();
 inicia().catch(e=>erro(e.message));
