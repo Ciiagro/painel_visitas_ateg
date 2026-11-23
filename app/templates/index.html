@@ -359,7 +359,7 @@ const ICO_KPI=[[/total de visitas/i,'prancheta','#2f7d4f'],[/validada/i,'check',
 const icoKpi=t=>{const m=ICO_KPI.find(x=>x[0].test(t))||[0,'barras','#5f9a6b'];return `<i class="ci" style="--c:${m[2]}">${svgIco(m[1])}</i>`};
 const bit=(t,v,sub)=>`<div class="b-it"><span>${icoKpi(t)}${t}</span><b>${v}</b>${sub?`<div class="k-var">${sub}</div>`:''}</div>`;
 function kpis(c,a,ev){
-  const cd=([k,t,extra])=>bit(t,c[k]?fmt(c[k]):'-',variacao(c[k],a[k])+(extra||'<small>vs anterior</small>'));
+  const cd=([k,t,extra])=>bit(t,c[k]?fmt(c[k]):'-',(extra||''));
   const gv=[['visitas','Total de visitas'],['so_valida','Visitas válida'],['validada','Visitas validada'],['invalidas','Visitas inválida'],['visitas_padrao','Visitas padrão'],
     ['coleta_dados','Coleta de dados'],['retorno','Visita retorno'],['virtual','Visitas virtual'],['zero','Visitas zero']];
   const vazio=gv.filter(x=>!c[x[0]]&&!a[x[0]]&&['virtual','zero'].includes(x[0]));
@@ -393,7 +393,7 @@ function freqDesenha(){const k=FD.tipo,q=($('fdBusca').value||'').trim().toLower
 const graf=(id,cfg)=>{if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg)};
 const ey={beginAtZero:true,grid:{color:'#e8f0ea'},ticks:{callback:v=>fmt(v)}},ex={grid:{display:false}};
 function area(id,rot,labels,vals,cor){const ctx=$(id).getContext('2d'),g=ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,cor+'55');g.addColorStop(1,cor+'05');
-  graf(id,{type:'line',data:{labels,datasets:[{label:rot,data:vals,borderColor:cor,backgroundColor:g,fill:true,tension:.3,pointRadius:vals.length>40?0:3,pointBackgroundColor:cor,borderWidth:2.2}]},plugins:[valTopo],options:{valTopo:vals.length<=31,layout:{padding:{top:20}},maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:{maxTicksLimit:12}}}}})}
+  graf(id,{type:'line',data:{labels,datasets:[{label:rot,data:vals,borderColor:cor,backgroundColor:g,fill:true,tension:.3,pointRadius:vals.length>40?0:3,pointBackgroundColor:cor,borderWidth:2.2}]},plugins:[valTopo],options:{valTopo:vals.length<=31,layout:{padding:{top:24,right:28,left:6}},maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:{maxTicksLimit:12}}}}})}
 function barraH(id,rows,k,v,rot,op){op=op||{};graf(id,{type:'bar',data:{labels:rows.map(r=>quebra(r[k],26)),datasets:[{label:rot,data:rows.map(r=>r[v]),backgroundColor:op.cor?rows.map(op.cor):'#2f7d4f',borderRadius:5,barPercentage:.55,categoryPercentage:.9}]},plugins:[valLado],options:{valLado:true,onClick:op.click?((e,els)=>{if(els.length)op.click(rows[els[0].index])}):undefined,onHover:op.click?((e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default'}):undefined,indexAxis:'y',maintainAspectRatio:false,layout:{padding:{right:46}},plugins:{legend:{display:false}},scales:{x:ey,y:{grid:{display:false},ticks:{autoSkip:false,color:'#3d4a43',padding:8,font:{size:11,weight:'400'}}}}}})}
 const ordena=(rows,k,d)=>[...rows].sort((x,y)=>{const a=x[k]??'',b=y[k]??'';return(typeof a==='string'?a.localeCompare(b,'pt-BR'):(a-b))*d});
 function tabela(id,cols,rows,chave,dest){
@@ -516,7 +516,7 @@ const rotArc={id:'rotArc',afterDatasetsDraw(ch){if(!ch.config.options.rotArc)ret
   ch.getDatasetMeta(0).data.forEach((a,i)=>{const f=ds.data[i]/t;if(f<0.035)return;const c=String(ds.backgroundColor[i]).replace('#',''),L=(parseInt(c.slice(0,2),16)*.299+parseInt(c.slice(2,4),16)*.587+parseInt(c.slice(4,6),16)*.114);
     ctx.fillStyle=L<140?'#fff':'#16472a';const pt=a.tooltipPosition();ctx.fillText((f*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%',pt.x,pt.y)});ctx.restore()}};
 const valTopo={id:'valTopo',afterDatasetsDraw(ch){if(!ch.config.options.valTopo)return;const ctx=ch.ctx;ctx.save();ctx.font='700 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';
-  ch.data.datasets.forEach((ds,k)=>{const m=ch.getDatasetMeta(k);if(m.hidden)return;ctx.fillStyle=ds.corValor||'#16472a';m.data.forEach((b,i)=>{const v=ds.data[i];if(v==null)return;ctx.fillText(fmt(v),b.x,b.y-4)})});ctx.restore()}};
+  ch.data.datasets.forEach((ds,k)=>{const m=ch.getDatasetMeta(k);if(m.hidden)return;ctx.fillStyle=ds.corValor||'#16472a';m.data.forEach((b,i)=>{const v=ds.data[i];if(v==null)return;const pr=ch.config.type==='line';if(pr){ctx.lineWidth=4;ctx.strokeStyle='#fff';ctx.lineJoin='round';ctx.strokeText(fmt(v),b.x,b.y-(pr?8:4))}ctx.fillText(fmt(v),b.x,b.y-(pr?8:4))})});ctx.restore()}};
 const valLado={id:'valLado',afterDatasetsDraw(ch){if(!ch.config.options.valLado)return;const ctx=ch.ctx,ds=ch.data.datasets[0];ctx.save();ctx.font='700 11px sans-serif';ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillStyle='#16472a';ch.getDatasetMeta(0).data.forEach((b,i)=>{const v=ds.data[i];if(v==null)return;ctx.fillText(fmt(v),b.x+6,b.y)});ctx.restore()}};
 const quebra=(s,n=15)=>{const w=String(s??'').split(' '),L=[];let c='';w.forEach(x=>{if((c+' '+x).trim().length>n&&c){L.push(c);c=x}else c=(c+' '+x).trim()});if(c)L.push(c);return L};
 const tkX={maxRotation:0,minRotation:0,autoSkip:false,color:'#1b2a21',font:{size:12,weight:'600'}};
@@ -769,7 +769,7 @@ function inicio(d){
     :'<p class="formula" style="margin:16px 4px">Nenhuma visita no período.</p>';
   // acompanhamento operacional
   const op=[['Coletas de dados','coleta_dados','nota','#c9730a'],['Visitas de retorno','retorno','repetir','#2b59a8'],['Supervisores','supervisores','pessoas','#0b7a80'],['Técnicos','tecnicos','pessoa','#a23b72'],['Municípios atendidos','municipios','pin','#7a8f2a']];
-  $('iniOp').innerHTML=op.map(([t2,k,i,cor])=>`<div class="kpi" style="--cor:${cor}"><div class="k-topo"><span class="ico">${svgIco(i)}</span><span class="k-rot">${t2}</span></div><b>${c[k]?fmt(c[k]):'-'}</b><div class="k-var">${variacao(c[k],a[k])}<small>vs período anterior</small></div></div>`).join('');
+  $('iniOp').innerHTML=op.map(([t2,k,i,cor])=>`<div class="kpi" style="--cor:${cor}"><div class="k-topo"><span class="ico">${svgIco(i)}</span><span class="k-rot">${t2}</span></div><b>${c[k]?fmt(c[k]):'-'}</b></div>`).join('');
   // alertas: pior indicador de cada município
   const AC={'Visitas realizadas':'Revisar agenda de visitas e reprogramar','Visitas válidas':'Reforçar acompanhamento do supervisor','Propriedades assistidas':'Intensificar ações de campo','Taxa de validade':'Analisar a validação das visitas dos técnicos'};
   const al=[];
