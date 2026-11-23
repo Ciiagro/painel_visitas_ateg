@@ -147,8 +147,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
 </header>
 <div class="corpo">
   <nav class="abas" id="abas">
-    <button class="aba on" data-p="ini"><span data-i="casa"></span>Início</button>
-    <button class="aba" data-p="graf"><span data-i="barras"></span>Gráficos</button>
+    <button class="aba on" data-p="graf"><span data-i="barras"></span>Gráficos</button>
     <button class="aba" data-p="ano"><span data-i="cal"></span>Por ano</button>
     <button class="aba" data-p="dest"><span data-i="estrela"></span>Destaques do período</button>
     <button class="aba" data-p="cart"><span data-i="check"></span>Propriedades e orientações</button>
@@ -185,7 +184,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
   <div class="banda" data-g="P"><div class="b-tit" data-i="casa">Propriedades</div><div class="b-itens" id="kP"></div></div>
   <div class="banda" data-g="E"><div class="b-tit" data-i="pessoas">Equipe e alcance</div><div class="b-itens" id="kE"></div></div>
   <div class="banda" data-g="O"><div class="b-tit" data-i="nota">Orientações</div><div class="b-itens" id="kO"></div></div>
-  <section class="painel on" id="p-ini">
+  <section class="painel" id="p-ini" style="display:none!important">
     <div class="insight"><span class="bulb" data-i="lampada"></span><div><h3>Visão inteligente</h3><p id="iniTexto"></p></div><button class="btn" id="iniVer">Ver pontos de atenção &rsaquo;</button></div>
     <section class="kpis k4" id="iniKpis"></section>
     <div class="ini-grid">
@@ -195,7 +194,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
     <div class="graf" style="margin-bottom:16px"><div class="g-topo"><span class="ico g" style="--cor:#16472a" data-i="pessoas"></span><div class="g-tit"><h2>Acompanhamento operacional</h2></div></div><section class="kpis cart" id="iniOp" style="margin:10px 0 0"></section></div>
     <div class="graf" id="iniAlertas"><div class="g-topo"><span class="ico g" style="--cor:#b3261e" data-i="estrela"></span><div class="g-tit"><h2>Alertas e prioridades</h2><p class="formula" id="iniAlSub"></p></div><div class="leg"><span class="prio alta">Alta</span><span class="prio media">Média</span><span class="prio baixa">Baixa</span></div></div><div class="tw" style="max-height:none"><table id="iniAl"></table></div></div>
   </section>
-  <section class="painel" id="p-graf">
+  <section class="painel on" id="p-graf">
     <div class="graficos">
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#2f7d4f" data-i="prancheta"></span><div class="g-tit"><h2 id="tVis">Visitas</h2><p class="formula">Visitas realizadas (sem as excluídas no SisATeG)</p></div><div class="pill" style="--cor:#2f7d4f"><b id="pVis"></b><small>no período</small></div></div><div class="cv"><canvas id="gVis"></canvas></div></div>
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#16472a" data-i="casa"></span><div class="g-tit"><h2>Propriedades assistidas</h2><p class="formula">Propriedades diferentes visitadas em cada dia ou mês</p></div><div class="pill" style="--cor:#16472a"><b id="pPro"></b><small>no período</small></div></div><div class="cv"><canvas id="gPro"></canvas></div></div>
@@ -637,7 +636,7 @@ async function inicia(){
   $('atalho').onchange=e=>{if(e.target.value){atalho(e.target.value);atualiza()}};
   $('limpar').onclick=()=>{[...TXT,...SN].forEach(k=>$(k).value='');$('atalho').value='';atualiza()};
   $('busca').oninput=listas;
-  document.querySelectorAll('.aba').forEach(b=>b.onclick=()=>{document.querySelectorAll('.aba,.painel').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('p-'+b.dataset.p).classList.add('on');document.body.classList.toggle('so-conf',b.dataset.p==='conf');document.body.classList.toggle('fora-ini',b.dataset.p!=='ini');document.body.classList.toggle('aba-ano',b.dataset.p==='ano');window.dispatchEvent(new Event('resize'))});
+  document.querySelectorAll('.aba').forEach(b=>b.onclick=()=>{document.querySelectorAll('.aba,.painel').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('p-'+b.dataset.p).classList.add('on');document.body.classList.toggle('so-conf',b.dataset.p==='conf');document.body.classList.toggle('fora-ini',b.dataset.p!=='graf');document.body.classList.toggle('aba-ano',b.dataset.p==='ano');window.dispatchEvent(new Event('resize'))});
   document.querySelectorAll('[data-csv]').forEach(b=>b.onclick=()=>csv(b.dataset.csv));
   atualiza();
 }
@@ -790,7 +789,7 @@ function inicio(d){
   if(vv!==null&&vv<=-1){if(topo.length)txt+=` O maior recuo está em ${topo[0].municipio} (−${pc(topo[0].v)}).`;txt+=' Priorize a análise por município e supervisor.'}
   $('iniTexto').textContent=txt;
 }
-function aplicaIni(){const i=document.querySelector('.aba.on');const esconde=!(i&&i.dataset.p==='ini');document.querySelectorAll('.banda').forEach(e=>e.style.display=esconde?'none':'')}
+function aplicaIni(){const i=document.querySelector('.aba.on');const esconde=!(i&&i.dataset.p==='graf');document.querySelectorAll('.banda').forEach(e=>e.style.display=esconde?'none':'')}
 document.querySelectorAll('.aba').forEach(b=>b.addEventListener('click',()=>setTimeout(()=>{aplicaIni();perfilProd();carregaAno();mapaCeara();carregaTecIn();carregaDown()},0)));
 $('iniVer').onclick=()=>$('iniAlertas').scrollIntoView({behavior:'smooth',block:'start'});
 aplicaIni();
