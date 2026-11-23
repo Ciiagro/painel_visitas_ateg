@@ -248,7 +248,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
           <input type="search" id="tiBusca" placeholder="Buscar técnico ou supervisor..." style="min-width:200px;padding:7px 10px">
           <button class="btn sec" id="tiCsv">CSV</button></div></div>
       <div class="tw" style="max-height:470px"><table id="tTecIn"></table></div>
-      <p class="formula" style="margin:8px 4px 0">Tempo no projeto = da primeira à última visita (a base começa em jun/2024). Mostra a última visita e o último supervisor de cada técnico. "Seguir os filtros" aplica supervisor, região, município etc. à última visita do técnico (o período De/Até não vale aqui). Desmarque para ver todos os técnicos sem visita recente.</p>
+      <p class="formula" style="margin:8px 4px 0">Tempo do Técnico no Projeto = da primeira à última visita (a base começa em jun/2024). Mostra a última visita e o último supervisor de cada técnico. "Seguir os filtros" aplica supervisor, região, município etc. à última visita do técnico (o período De/Até não vale aqui). Desmarque para ver todos os técnicos sem visita recente.</p>
     </div></section>
   <section class="painel" id="p-mun">
     <div class="graf" id="mapaBox" style="margin-bottom:16px"><div class="g-topo"><span class="ico g" style="--cor:#0b7a80" data-i="pin"></span><div class="g-tit"><h2>Mapa do Ceará</h2><p class="formula" id="mapaSub"></p></div>
@@ -402,7 +402,7 @@ function listas(){
   supDet();
   const b=$('busca').value.toLowerCase(),t=dados.por_tecnico.filter(r=>(r.tecnico+' '+(r.supervisor||'')).toLowerCase().includes(b));
   const temPos=false; // posição geral/nota ficam só na aba Desempenho
-  tabela('tTec',[['tecnico_sup','Técnico'],['meses_projeto','Tempo no projeto'],['atividade','Atividade'],['propriedades','Propriedades'],['visitas','Visitas'],['coleta_dados','Coleta'],['dias_com_visita','Dias com visita'],['ultima_visita','Última visita']],t.map(r=>({...r,tecnico_sup:r.tecnico})),'tec','visitas');
+  tabela('tTec',[['tecnico_sup','Técnico'],['meses_projeto','Tempo do Técnico no Projeto'],['atividade','Atividade'],['propriedades','Propriedades'],['visitas','Visitas'],['coleta_dados','Coleta'],['dias_com_visita','Dias com visita'],['ultima_visita','Última visita']],t.map(r=>({...r,tecnico_sup:r.tecnico})),'tec','visitas');
   const temReg=(dados.por_regiao||[]).length>0;
   tabela('tMun',[['municipio','Município'],...(temReg?[['regiao','Região'],['sindicato','Sindicato']]:[]),['supervisores','Supervisores'],['tecnicos','Técnicos'],['atividades','Cadeias'],['propriedades','Propriedades'],['visitas','Visitas']],dados.por_municipio,'mun','visitas');
   $('regSindBox').style.display=temReg?'':'none';
@@ -767,11 +767,11 @@ function semVisita(r){return r.dias_sem_visita==null?'':emMeses(r.dias_sem_visit
 function tecInLinhas(){const b=($('tiBusca').value||'').toLowerCase();return TI.filter(r=>!b||((r.tecnico||'')+' '+(r.supervisor||'')).toLowerCase().includes(b))}
 function tecInTabela(){
   const r=tecInLinhas();
-  $('tTecIn').innerHTML='<thead><tr><th class="l">Técnico</th><th>Tempo no projeto</th><th>Primeira visita</th><th>Última visita</th><th>Tempo sem visita</th><th class="l">Último município</th><th class="l">Último projeto</th><th class="l">Última atividade</th><th>Total de visitas</th></tr></thead><tbody>'+
+  $('tTecIn').innerHTML='<thead><tr><th class="l">Técnico</th><th>Tempo do Técnico no Projeto</th><th>Primeira visita</th><th>Última visita</th><th>Tempo sem visita</th><th class="l">Último município</th><th class="l">Último projeto</th><th class="l">Última atividade</th><th>Total de visitas</th></tr></thead><tbody>'+
    r.map(x=>`<tr><td class="l">${esc(x.tecnico)}<small class="sub">${esc(x.supervisor||'(sem supervisor)')}</small></td><td>${tempoAtu(x)}</td><td>${br(x.primeira_visita)}</td><td>${br(x.ultima_visita)}</td><td>${semVisita(x)}</td><td class="l">${esc(x.municipio||'')}</td><td class="l">${esc(x.projeto||'')}</td><td class="l">${esc(x.atividade||'')}</td><td>${fmt(x.visitas)}</td></tr>`).join('')+'</tbody>';
 }
 function tecInCsv(){
-  const c=[['tecnico','Técnico'],['tempo','Tempo no projeto'],['primeira_visita','Primeira visita'],['ultima_visita','Última visita'],['sem_visita','Tempo sem visita'],['supervisor','Último supervisor'],['municipio','Último município'],['projeto','Último projeto'],['atividade','Última atividade'],['visitas','Total de visitas']];
+  const c=[['tecnico','Técnico'],['tempo','Tempo do Técnico no Projeto'],['primeira_visita','Primeira visita'],['ultima_visita','Última visita'],['sem_visita','Tempo sem visita'],['supervisor','Último supervisor'],['municipio','Último município'],['projeto','Último projeto'],['atividade','Última atividade'],['visitas','Total de visitas']];
   const l=[c.map(x=>x[1]).join(';'),...tecInLinhas().map(r=>c.map(([k])=>`"${String(k==='tempo'?tempoAtu(r):k==='sem_visita'?semVisita(r):r[k]??'').replace(/"/g,'""')}"`).join(';'))];
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+l.join('\n')],{type:'text/csv;charset=utf-8'}));a.download='tecnicos_sem_visita_recente.csv';a.click();
 }
