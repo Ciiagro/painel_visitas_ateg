@@ -86,7 +86,7 @@ select:hover,input:hover{border-color:#bfd9c8}select.on{border-color:var(--verde
 #tTec th:not(:first-child),#tTec td:not(:first-child),#tTecIn th:not(:first-child),#tTecIn td:not(:first-child){text-align:center!important}
 .tw td small.sub{display:block;font-size:11px;color:#6b7a70;margin-top:1px}
 .tw{overflow:auto;max-height:470px;border:1px solid var(--linha);border-radius:10px;margin-top:8px}
-#tDown th{white-space:normal;line-height:1.25;vertical-align:bottom;min-width:84px}
+#tDown th{text-align:center!important;white-space:normal;line-height:1.25;vertical-align:bottom;min-width:84px}
 table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{padding:7px 10px;border-bottom:1px solid var(--linha);text-align:right;white-space:nowrap}
 th{position:sticky;top:0;background:var(--suave);color:var(--verde-esc);font-size:12.5px;cursor:pointer;user-select:none;z-index:1}
 th:first-child,td:first-child{text-align:left;white-space:normal}th.l,td.l{text-align:left}tbody tr:hover td{background:#eef7f0}
@@ -825,7 +825,7 @@ function tecInCsv(){
 }
 $('tiDias').onchange=carregaTecIn;$('tiSeguir').onchange=carregaTecIn;$('tiBusca').oninput=tecInTabela;$('tiCsv').onclick=tecInCsv;
 /* ===== Aba Download: tabela Região, Sindicato, Município, Supervisor, Técnico, Mês, Projeto, Atividade, Data inicial e final ===== */
-const DN_COLS=[['regiao','Região'],['sindicato','Sindicato'],['municipio','Município'],['supervisor','Supervisor'],['tecnico','Técnico'],['projeto','Projeto'],['atividade','Atividade'],['data_inicial','Início da Turma'],['data_final','Última Visita da Turma'],['meses','Tempo do Técnico no Projeto'],['meses_turma','Tempo do Projeto']];
+const DN_COLS=[['regiao','Região'],['sindicato','Sindicato'],['municipio','Município'],['supervisor','Supervisor'],['tecnico','Técnico'],['projeto','Projeto'],['atividade','Atividade'],['data_inicial','Início da Turma'],['data_final','Última Visita da Turma'],['meses_turma','Tempo do Projeto'],['meses','Tempo do Técnico no Projeto']];
 const DN_POR_PAG=100;
 let DN=[],dnOrd=['regiao',1],dnPag=0,dnSeq=0,dnChave='',dnPend='',dnTotalBase=0,dnCortou=false;
 const dnMes=m=>m?m.slice(5,7)+'/'+m.slice(0,4):'';
