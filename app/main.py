@@ -605,6 +605,8 @@ def freq_detalhe(request: Request, faixa: str = ""):
         linhas = _linhas(con, f"""WITH n AS (SELECT id_propriedade, COUNT(DISTINCT id_visita) AS n FROM {TABLE} WHERE {w} GROUP BY 1)
             SELECT COALESCE(v.tecnico, '(sem técnico)') AS tecnico, COUNT(DISTINCT v.id_propriedade) AS propriedades,
               COUNT(DISTINCT v.id_visita) AS visitas,
+              COUNT(DISTINCT v.id_visita) FILTER (WHERE NOT COALESCE(v.coleta_dados, FALSE) AND NOT COALESCE(v.retorno, FALSE)
+                AND NOT COALESCE(v."virtual", FALSE) AND NOT COALESCE(v.visita_zero, FALSE)) AS padrao,
               COUNT(DISTINCT v.id_visita) FILTER (WHERE v.presencial) AS presencial,
               COUNT(DISTINCT v.id_visita) FILTER (WHERE v."virtual") AS virtual,
               COUNT(DISTINCT v.id_visita) FILTER (WHERE v.retorno) AS retorno,
@@ -612,6 +614,45 @@ def freq_detalhe(request: Request, faixa: str = ""):
             FROM {TABLE} v JOIN n ON n.id_propriedade = v.id_propriedade AND {cond}
             WHERE {w.replace('dt_visita', 'v.dt_visita')} GROUP BY 1 ORDER BY 3 DESC LIMIT 500""", p)
     return {"faixa": faixa, "linhas": linhas}
+
+
+@app.get("/api/por-trimestre")
+def por_trimestre(request: Request):
+    """Visitas, propriedades e técnicos por trimestre do ano da data final do filtro (ou do ano atual).
+    Lê a mesma view leve de /api/por-ano; valem os filtros de município, técnico, atividade, projeto, coleta, presencial e válida."""
+    f, _de, _ate = _filtros_da_requisicao(request)
+    hoje = date.today()
+    try:
+        fim = date.fromisoformat((_ate or "")[:10])
+    except ValueError:
+        fim = hoje
+    ano = fim.year
+    with engine.connect() as con:
+        completo = bool(con.execute(text("SELECT to_regclass(:t) IS NOT NULL"), {"t": ANUAL}).scalar())
+        tabela = ANUAL if completo else TABLE
+        w, p = ["dt_visita >= :ini", "dt_visita < :fimano"], {"ini": date(ano, 1, 1), "fimano": date(ano + 1, 1, 1)}
+        for k in ANUAL_TXT:
+            if f.get(k):
+                w.append(f"{k} = :{k}"); p[k] = f[k]
+        for k, col in SIMNAO.items():
+            v = (f.get(k) or "").lower()
+            if v in ("sim", "nao"):
+                w.append(f"{col} IS {'TRUE' if v == 'sim' else 'FALSE'}")
+        linhas = _linhas(con, f"""SELECT EXTRACT(QUARTER FROM dt_visita)::int AS tri, COUNT(DISTINCT id_visita) AS visitas,
+            COUNT(DISTINCT id_propriedade) AS propriedades, COUNT(DISTINCT tecnico) AS tecnicos
+            FROM {tabela} WHERE {' AND '.join(w)} GROUP BY 1 ORDER BY 1""", p)
+    por = {r["tri"]: r for r in linhas}
+    limite = min(hoje, date(ano, 12, 31))
+    out = []
+    for t in range(1, 5):
+        ini, fim_t = date(ano, 3 * t - 2, 1), (date(ano, 3 * t + 1, 1) - timedelta(days=1)) if t < 4 else date(ano, 12, 31)
+        if ini > limite:
+            continue
+        dias = (min(fim_t, limite) - ini).days + 1
+        r = por.get(t, {})
+        out.append({"tri": t, "visitas": int(r.get("visitas", 0)), "propriedades": int(r.get("propriedades", 0)),
+                    "tecnicos": int(r.get("tecnicos", 0)), "dias": dias, "dias_tri": (fim_t - ini).days + 1, "parcial": min(fim_t, limite) < fim_t})
+    return {"ano": ano, "trimestres": out}
 
 
 @app.get("/api/resumo")

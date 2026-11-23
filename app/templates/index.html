@@ -203,6 +203,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#7a5ba6" data-i="nota"></span><div class="g-tit"><h2>Tipo de visita</h2><p class="formula">Padrão, coleta de dados, retorno, virtual e zero</p></div></div><div class="cv"><canvas id="gTipo"></canvas></div></div>
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#0b7a80" data-i="cal"></span><div class="g-tit"><h2>Visitas por dia da semana</h2></div></div><div class="cv"><canvas id="gDow"></canvas></div></div>
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#a23b72" data-i="repetir"></span><div class="g-tit"><h2>Quantas vezes cada propriedade foi visitada</h2><p class="formula">Propriedades por número de visitas no período</p></div></div><div class="cv"><canvas id="gFreq"></canvas></div><p class="formula" style="margin:6px 2px">Clique numa barra para ver os técnicos e os tipos de visita dessas propriedades.</p><div id="freqDet" class="tabwrap" style="display:none"></div></div>
+      <div class="graf" style="grid-column:1/-1"><div class="g-topo"><span class="ico g" style="--cor:#2b59a8" data-i="barras"></span><div class="g-tit"><h2 id="triTit">Crescimento por trimestre</h2><p class="formula">Visitas de cada trimestre do ano, comparadas ao trimestre anterior (média por dia, para o trimestre em andamento ser justo)</p></div></div><div class="cv"><canvas id="gTri"></canvas></div><div id="triTab" class="tw" style="max-height:none;margin-top:8px"></div></div>
     </div>
   </section>
   <section class="painel" id="p-ano">
@@ -370,6 +371,16 @@ function kpis(c,a,ev){
 }
 let FD={faixa:'',L:[],tipo:'visitas'};
 const FD_TIPOS=[['visitas','Todos'],['padrao','Padrão'],['coleta','Coleta de dados'],['retorno','Retorno'],['virtual','Virtual']];
+async function carregaTri(){
+  try{const r=await api('/api/por-trimestre?'+qs()),T=r.trimestres;if(!T.length)return;
+    $('triTit').textContent='Crescimento por trimestre — '+r.ano;
+    const mDia=t=>t.dias?t.visitas/t.dias:0;
+    T.forEach((t,i)=>{t.vd=mDia(t);t.cres=i&&T[i-1].vd?(t.vd-T[i-1].vd)/T[i-1].vd*100:null;t.vt=t.tecnicos?t.visitas/t.tecnicos:0});
+    graf('gTri',{type:'bar',data:{labels:T.map(t=>t.tri+'º trimestre'+(t.parcial?' (em andamento)':'')),datasets:[{label:'Visitas',data:T.map(t=>t.visitas),backgroundColor:T.map(t=>t.parcial?'#9fc3a9':'#2f7d4f'),borderRadius:5}]},plugins:[valTopo],options:{valTopo:true,layout:{padding:{top:22}},maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:tkX}}}});
+    const cr=v=>v==null?'—':'<span class="'+(v>0.05?'pos':v<-0.05?'neg':'')+'">'+(v>0?'▲ ':v<0?'▼ ':'')+Math.abs(v).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%</span>';
+    $('triTab').innerHTML='<table><thead><tr><th class="l">Trimestre</th><th>Visitas</th><th>Propriedades</th><th>Técnicos</th><th>Visitas por técnico</th><th>Visitas por dia</th><th>Crescimento (visitas por dia)</th></tr></thead><tbody>'+
+     T.map(t=>'<tr><td class="l">'+t.tri+'º trimestre'+(t.parcial?' <small class="sub">('+t.dias+' de '+t.dias_tri+' dias)</small>':'')+'</td><td>'+fmt(t.visitas)+'</td><td>'+fmt(t.propriedades)+'</td><td>'+fmt(t.tecnicos)+'</td><td>'+t.vt.toLocaleString('pt-BR',{maximumFractionDigits:1})+'</td><td>'+t.vd.toLocaleString('pt-BR',{maximumFractionDigits:1})+'</td><td>'+cr(t.cres)+'</td></tr>').join('')+'</tbody></table>'
+  }catch(e){}}
 async function freqDet(faixa){const el=$('freqDet');el.style.display='block';el.innerHTML='<p class="formula">Carregando…</p>';
   try{const r=await api('/api/freq-detalhe?'+qs()+'&faixa='+encodeURIComponent(faixa));FD={faixa,L:r.linhas,tipo:'visitas'};
     el.innerHTML='<div style="border-top:1px solid var(--linha);margin-top:10px;padding-top:12px">'+
@@ -600,10 +611,10 @@ async function atualiza(){
   carregaDown();    // aba Download: também em paralelo, não depende do resumo
   try{
     await carregaFiltros();
-    dados=await api('/api/resumo?'+qs());const d=dados,c=d.cards,ev=d.evolucao.pontos,dia=d.evolucao.por_dia;
+    carregaTri();dados=await api('/api/resumo?'+qs());const d=dados,c=d.cards,ev=d.evolucao.pontos,dia=d.evolucao.por_dia;
     const sel=[...TXT].filter(k=>$(k).value).map(k=>$(k).value);
     $('escTit').innerHTML=svgIco('prancheta')+esc(sel.length?sel[sel.length-1]:'Todas as visitas');
-    $('escSub').textContent=`Período: ${br(d.periodo.de)} a ${br(d.periodo.ate)} (${d.periodo.dias} dias) · variação contra ${br(d.periodo.anterior_de)} a ${br(d.periodo.anterior_ate)}`;
+    $('escSub').textContent=`Período: ${br(d.periodo.de)} a ${br(d.periodo.ate)} (${d.periodo.dias} dias)`;
     $('chips').innerHTML=[...TXT,...SN].filter(k=>$(k).value&&sel.length>1||SN.includes(k)&&$(k).value).map(k=>`<span class="chip">${NOMES[k]}: ${esc($(k).options[$(k).selectedIndex].text)}</span>`).join('');
     kpis(c,d.anterior,ev);
     const lab=ev.map(r=>dia?r.periodo.slice(8)+'/'+r.periodo.slice(5,7):r.periodo.slice(5)+'/'+r.periodo.slice(0,4));
