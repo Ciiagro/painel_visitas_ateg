@@ -591,6 +591,29 @@ def _primeira_visita_por_tecnico():
     return _PRIM_CACHE["v"]
 
 
+@app.get("/api/freq-detalhe")
+def freq_detalhe(request: Request, faixa: str = ""):
+    """Propriedades da faixa clicada em 'Quantas vezes cada propriedade foi visitada', por técnico e tipo de visita."""
+    f, de, ate = _filtros_da_requisicao(request)
+    if not de or not ate:
+        raise HTTPException(400, "Informe de e ate (AAAA-MM-DD)")
+    w, p = _where(f, de=_data(de, "de"), ate=_data(ate, "ate"))
+    cond = {"1 visita": "n = 1", "2 visitas": "n = 2", "3 visitas": "n = 3", "4 ou mais": "n >= 4"}.get(faixa)
+    if not cond:
+        raise HTTPException(400, "Faixa inválida")
+    with engine.connect() as con:
+        linhas = _linhas(con, f"""WITH n AS (SELECT id_propriedade, COUNT(DISTINCT id_visita) AS n FROM {TABLE} WHERE {w} GROUP BY 1)
+            SELECT COALESCE(v.tecnico, '(sem técnico)') AS tecnico, COUNT(DISTINCT v.id_propriedade) AS propriedades,
+              COUNT(DISTINCT v.id_visita) AS visitas,
+              COUNT(DISTINCT v.id_visita) FILTER (WHERE v.presencial) AS presencial,
+              COUNT(DISTINCT v.id_visita) FILTER (WHERE v."virtual") AS virtual,
+              COUNT(DISTINCT v.id_visita) FILTER (WHERE v.retorno) AS retorno,
+              COUNT(DISTINCT v.id_visita) FILTER (WHERE v.coleta_dados) AS coleta
+            FROM {TABLE} v JOIN n ON n.id_propriedade = v.id_propriedade AND {cond}
+            WHERE {w.replace('dt_visita', 'v.dt_visita')} GROUP BY 1 ORDER BY 3 DESC LIMIT 500""", p)
+    return {"faixa": faixa, "linhas": linhas}
+
+
 @app.get("/api/resumo")
 def resumo(request: Request):
     f, de, ate = _filtros_da_requisicao(request)
@@ -726,6 +749,8 @@ def resumo(request: Request):
             _mapa_st.setdefault(_r["tecnico"], []).append(_r["supervisor"])
         for _r in cart_tec:
             _r["supervisores"] = _mapa_st.get(_r["nome"], [])
+        for _r in por_tecnico:
+            _r["supervisores"] = _mapa_st.get(_r["tecnico"], [])
         # Propriedades desativadas por mês e motivo (vínculo da propriedade encerrado no SisATeG).
         # Se a view ainda não tem as colunas vinculo_* (vw_visitas.sql não foi rodada de novo), o painel segue funcionando.
         desat = {"disponivel": False}
