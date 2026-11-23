@@ -368,13 +368,24 @@ function kpis(c,a,ev){
   const nat=(dados.por_atividade||[]).filter(r=>r.atividade&&r.atividade!=='(sem atividade)').length;
   $('kE').innerHTML=cd(['supervisores','Supervisores'])+cd(['tecnicos','Técnicos'])+bit('Atividades atendidas',fmt(nat),'<small>com visita no período</small>')+cd(['municipios','Municípios atendidos']);
 }
+let FD={faixa:'',L:[]};
 async function freqDet(faixa){const el=$('freqDet');el.style.display='block';el.innerHTML='<p class="formula">Carregando…</p>';
-  try{const r=await api('/api/freq-detalhe?'+qs()+'&faixa='+encodeURIComponent(faixa));
-    const L=r.linhas,t=k=>L.reduce((s,x)=>s+(x[k]||0),0);
-    el.innerHTML='<h3 style="margin:8px 0">Propriedades com '+esc(faixa)+' — por técnico</h3><table><thead><tr><th class="l">Técnico</th><th>Propriedades</th><th>Visitas</th><th>Presencial</th><th>Virtual</th><th>Retorno</th><th>Coleta</th></tr></thead><tbody>'+
-    L.map(x=>'<tr><td class="l">'+esc(x.tecnico)+'</td><td>'+fmt(x.propriedades)+'</td><td>'+fmt(x.visitas)+'</td><td>'+fmt(x.presencial)+'</td><td>'+fmt(x.virtual)+'</td><td>'+fmt(x.retorno)+'</td><td>'+fmt(x.coleta)+'</td></tr>').join('')+
-    '</tbody></table><p class="formula">Um tipo de visita pode se somar com outro (ex.: presencial com coleta). Total de técnicos: '+fmt(L.length)+'.</p>'
+  try{const r=await api('/api/freq-detalhe?'+qs()+'&faixa='+encodeURIComponent(faixa));FD={faixa,L:r.linhas};
+    el.innerHTML='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 6px"><b>Propriedades com '+esc(faixa)+'</b>'+
+    '<select id="fdTipo"><option value="visitas">Todos os tipos de visita</option><option value="presencial">Só presencial</option><option value="virtual">Só virtual</option><option value="retorno">Só retorno</option><option value="coleta">Só coleta de dados</option></select>'+
+    '<input id="fdBusca" type="search" placeholder="Buscar técnico…" style="min-width:180px">'+
+    '<button id="fdFechar" type="button" style="margin-left:auto">Fechar ✕</button></div>'+
+    '<div class="cv" style="height:300px"><canvas id="gFreqTec"></canvas></div>'+
+    '<div id="fdTab" style="max-height:260px;overflow:auto;margin-top:10px"></div><p class="formula" id="fdNota"></p>';
+    $('fdTipo').onchange=$('fdBusca').oninput=freqDesenha;$('fdFechar').onclick=()=>{el.style.display='none'};freqDesenha();
   }catch(e){el.innerHTML='<p class="formula">Não foi possível carregar.</p>'}}
+function freqDesenha(){const k=$('fdTipo').value,q=($('fdBusca').value||'').trim().toLowerCase();
+  const L=FD.L.filter(x=>(x[k]||0)>0&&(!q||x.tecnico.toLowerCase().includes(q))).sort((a,b)=>b[k]-a[k]);
+  const rot=$('fdTipo').selectedOptions[0].textContent.replace(/^Só /,'');
+  barraH('gFreqTec',L.slice(0,10),'tecnico',k,rot);
+  $('fdTab').innerHTML='<table><thead><tr><th class="l">Técnico</th><th>Propriedades</th><th>Visitas</th><th>Presencial</th><th>Virtual</th><th>Retorno</th><th>Coleta</th></tr></thead><tbody>'+
+   L.map(x=>'<tr><td class="l">'+esc(x.tecnico)+'</td><td>'+fmt(x.propriedades)+'</td><td>'+fmt(x.visitas)+'</td><td>'+fmt(x.presencial)+'</td><td>'+fmt(x.virtual)+'</td><td>'+fmt(x.retorno)+'</td><td>'+fmt(x.coleta)+'</td></tr>').join('')+'</tbody></table>';
+  $('fdNota').textContent='Gráfico: os 10 técnicos com mais visitas do tipo escolhido ('+fmt(L.length)+' técnicos no total, todos na tabela). Um tipo de visita pode se somar com outro (ex.: presencial com coleta).'}
 const graf=(id,cfg)=>{if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg)};
 const ey={beginAtZero:true,grid:{color:'#e8f0ea'},ticks:{callback:v=>fmt(v)}},ex={grid:{display:false}};
 function area(id,rot,labels,vals,cor){const ctx=$(id).getContext('2d'),g=ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,cor+'55');g.addColorStop(1,cor+'05');
