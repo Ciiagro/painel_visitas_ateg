@@ -41,6 +41,13 @@ WITH v AS (
          COALESCE(a.visita_zero, '')       ~* '^(s|v)'             AS visita_zero,
          COALESCE(a.visita_valida, '')     ~* '^(s|v)'             AS valida,
          a.id_produtor::bigint                                     AS id_produtor,
+         NULLIF(btrim(a.produtor, E' \t\r\n'), '')                 AS produtor,
+         NULLIF(regexp_replace(COALESCE(a.cpf_produtor::text, ''), '[^0-9]', '', 'g'), '') AS cpf_num,
+         NULLIF(btrim(a.faixa_etaria, E' \t\r\n'), '')             AS faixa_etaria,
+         a.dt_nascimento                                           AS dt_nascimento,
+         NULLIF(btrim(a.celular_produtor, E' \t\r\n'), '')         AS celular_produtor,
+         NULLIF(btrim(a.telefone_produtor, E' \t\r\n'), '')        AS telefone_produtor,
+         NULLIF(btrim(a.email_produtor, E' \t\r\n'), '')           AS email_produtor,
          CASE WHEN replace(btrim(a.latitude_propriedade),  ',', '.') ~ '^-?[0-9]+(\.[0-9]+)?$'
               THEN -abs(replace(btrim(a.latitude_propriedade),  ',', '.')::double precision) END  AS lat0,
          CASE WHEN replace(btrim(a.longitude_propriedade), ',', '.') ~ '^-?[0-9]+(\.[0-9]+)?$'
@@ -78,7 +85,13 @@ SELECT v.id_visita, v.id_propriedade, v.dt_visita, v.mes, v.projeto, v.atividade
        CASE WHEN v.lat0 BETWEEN -7.95 AND -2.70 AND v.lon0 BETWEEN -41.60 AND -37.10 THEN v.lat0 END AS latitude,
        CASE WHEN v.lat0 BETWEEN -7.95 AND -2.70 AND v.lon0 BETWEEN -41.60 AND -37.10 THEN v.lon0 END AS longitude,
        -- região e sindicato do município (tabela public.municipio_regiao, copiada do Supabase)
-       r.regiao_faec, r.regiao_sebrae, r.regiao_planejamento, r.sindicato
+       r.regiao_faec, r.regiao_sebrae, r.regiao_planejamento, r.sindicato,
+       -- dados do produtor (colunas novas SEMPRE no fim)
+       v.produtor,
+       CASE WHEN length(v.cpf_num) = 11
+            THEN substr(v.cpf_num,1,3)||'.'||substr(v.cpf_num,4,3)||'.'||substr(v.cpf_num,7,3)||'-'||substr(v.cpf_num,10,2)
+            ELSE v.cpf_num END AS cpf_produtor,
+       v.faixa_etaria, v.dt_nascimento, v.celular_produtor, v.telefone_produtor, v.email_produtor
 FROM v
 LEFT JOIN (SELECT DISTINCT ON (tecnico, mes) tecnico, mes, supervisor_sisateg AS supervisor_atual
            FROM v WHERE tecnico IS NOT NULL AND supervisor_sisateg IS NOT NULL

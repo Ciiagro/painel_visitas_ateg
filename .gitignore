@@ -24,3 +24,5 @@ diagnostico_209.py
 backup_supervisores/
 salvar_supervisores_antigos.py
 testar_primeira_visita.py
+comparar_fontes.py
+*.bak*

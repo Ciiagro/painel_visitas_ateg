@@ -75,6 +75,7 @@ select:hover,input:hover{border-color:#bfd9c8}select.on{border-color:var(--verde
 .aba svg{width:17px;height:17px;stroke:#fff}.aba:hover{background:rgba(255,255,255,.14)}.aba.on{background:#2f9a5a;font-weight:700;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
 .kpis.cart{margin-top:-6px}.kpis.cart .kpi{grid-template-areas:"topo topo" "val val" "var var"}.painel{display:none}.painel.on{display:block}
 .fora-ini .escopo,.fora-ini .banda{display:none}
+#p-ini .insight,#iniKpis{display:none}
 .graficos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
 @media(min-width:1900px){.graficos{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:1100px){.graficos{grid-template-columns:1fr}}
 .graf{background:var(--surf);border:1px solid var(--linha);border-radius:14px;padding:16px 18px 12px;box-shadow:var(--sombra);min-width:0}
@@ -187,7 +188,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
     <section class="kpis k4" id="iniKpis"></section>
     <div class="ini-grid">
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#2f7d4f" data-i="barras"></span><div class="g-tit"><h2 id="iniEvTit">Evolução das visitas</h2><p class="formula">Visitas realizadas no período e no período anterior</p></div></div><div class="cv"><canvas id="gIni"></canvas></div></div>
-      <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#c9730a" data-i="pin"></span><div class="g-tit"><h2>Municípios com mais atendimentos</h2><p class="formula" id="iniMunSub"></p></div></div><div id="iniMun" style="margin-top:6px"></div></div>
+      <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#c9730a" data-i="pin"></span><div class="g-tit"><h2>Municípios com mais visitas</h2><p class="formula" id="iniMunSub"></p></div></div><div id="iniMun" style="margin-top:6px"></div></div>
     </div>
     <div class="graf" style="margin-bottom:16px"><div class="g-topo"><span class="ico g" style="--cor:#16472a" data-i="pessoas"></span><div class="g-tit"><h2>Acompanhamento operacional</h2></div></div><section class="kpis cart" id="iniOp" style="margin:10px 0 0"></section></div>
     <div class="graf" id="iniAlertas"><div class="g-topo"><span class="ico g" style="--cor:#b3261e" data-i="estrela"></span><div class="g-tit"><h2>Alertas e prioridades</h2><p class="formula" id="iniAlSub"></p></div><div class="leg"><span class="prio alta">Alta</span><span class="prio media">Média</span><span class="prio baixa">Baixa</span></div></div><div class="tw" style="max-height:none"><table id="iniAl"></table></div></div>
