@@ -372,7 +372,7 @@ const graf=(id,cfg)=>{if(charts[id])charts[id].destroy();charts[id]=new Chart($(
 const ey={beginAtZero:true,grid:{color:'#e8f0ea'},ticks:{callback:v=>fmt(v)}},ex={grid:{display:false}};
 function area(id,rot,labels,vals,cor){const ctx=$(id).getContext('2d'),g=ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,cor+'55');g.addColorStop(1,cor+'05');
   graf(id,{type:'line',data:{labels,datasets:[{label:rot,data:vals,borderColor:cor,backgroundColor:g,fill:true,tension:.3,pointRadius:vals.length>40?0:3,pointBackgroundColor:cor,borderWidth:2.2}]},options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:{maxTicksLimit:12}}}}})}
-function barraH(id,rows,k,v,rot){graf(id,{type:'bar',data:{labels:rows.map(r=>quebra(r[k],26)),datasets:[{label:rot,data:rows.map(r=>r[v]),backgroundColor:'#2f7d4f',borderRadius:5,barPercentage:.55,categoryPercentage:.9}]},plugins:[valLado],options:{valLado:true,indexAxis:'y',maintainAspectRatio:false,layout:{padding:{right:46}},plugins:{legend:{display:false}},scales:{x:ey,y:{grid:{display:false},ticks:{autoSkip:false,color:'#3d4a43',padding:8,font:{size:11,weight:'400'}}}}}})}
+function barraH(id,rows,k,v,rot,op){op=op||{};graf(id,{type:'bar',data:{labels:rows.map(r=>quebra(r[k],26)),datasets:[{label:rot,data:rows.map(r=>r[v]),backgroundColor:op.cor?rows.map(op.cor):'#2f7d4f',borderRadius:5,barPercentage:.55,categoryPercentage:.9}]},plugins:[valLado],options:{valLado:true,onClick:op.click?((e,els)=>{if(els.length)op.click(rows[els[0].index])}):undefined,onHover:op.click?((e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default'}):undefined,indexAxis:'y',maintainAspectRatio:false,layout:{padding:{right:46}},plugins:{legend:{display:false}},scales:{x:ey,y:{grid:{display:false},ticks:{autoSkip:false,color:'#3d4a43',padding:8,font:{size:11,weight:'400'}}}}}})}
 const ordena=(rows,k,d)=>[...rows].sort((x,y)=>{const a=x[k]??'',b=y[k]??'';return(typeof a==='string'?a.localeCompare(b,'pt-BR'):(a-b))*d});
 function tabela(id,cols,rows,chave,dest){
   const [ok,od]=ordem[chave],max=Math.max(1,...rows.map(r=>r[dest]||0));
@@ -383,12 +383,12 @@ function tabela(id,cols,rows,chave,dest){
 function supDet(){
   const tb=$('tSup'),box=$('supDetBox');
   tb.querySelectorAll('tbody tr').forEach(tr=>{const nome=tr.cells[0].textContent;tr.style.cursor='pointer';tr.title='Ver os técnicos deste supervisor';
-    if(nome===supSel)tr.style.background='#e3f1e7';tr.onclick=()=>{supSel=(supSel===nome?null:nome);listas()}});
+    if(nome===supSel)tr.style.background='#e3f1e7';tr.onclick=()=>selSup(nome)});
   if(!supSel||!dados.por_supervisor.some(r=>r.supervisor===supSel)){supSel=null;box.style.display='none';return}
   const rows=dados.por_tecnico.filter(r=>(r.supervisor||'(sem supervisor)')===supSel);
   box.style.display='';$('supDetTit').textContent=`Técnicos de ${supSel} (${rows.length})`;
   tabela('tSupDet',[['tecnico','Técnico'],['propriedades','Propriedades'],['visitas','Visitas'],['coleta_dados','Coleta de dados'],['dias_com_visita','Dias com visita'],['ultima_visita','Última visita']],rows,'supdet','visitas');
-  $('supDetFechar').onclick=()=>{supSel=null;listas()};
+  $('supDetFechar').onclick=()=>selSup(supSel);
 }
 function tabAtividade(rows,c){
   $('tAtiv').innerHTML='<thead><tr><th>Atividade</th><th>Municípios</th><th>Supervisores</th><th>Técnicos</th><th>Propriedades</th><th>Visitas</th></tr></thead><tbody>'+
@@ -403,7 +403,7 @@ function listas(){
   $('tAtiv2').insertAdjacentHTML('beforeend',`<tfoot><tr><td class="l">Total</td><td>${fmt(_c.municipios)}</td><td>${fmt(_c.supervisores)}</td><td>${fmt(_c.tecnicos)}</td><td>${fmt(_c.propriedades)}</td><td>${fmt(_t.ativas)}</td><td>${fmt(_t.inativas)}</td><td>${fmt(_c.visitas)}</td><td>${fmt(_t.ori_total)}</td><td>${fmt(_t.ori_concluida)}</td><td>${pct(_t.ori_concluida,_t.ori_total)}</td></tr></tfoot>`);
   tabela('tSup',[['supervisor','Supervisor'],['tecnicos','Técnicos'],['propriedades','Propriedades'],['visitas','Visitas']],dados.por_supervisor,'sup','visitas');
   supDet();
-  const b=$('busca').value.toLowerCase(),t=dados.por_tecnico.filter(r=>(r.tecnico+' '+(r.supervisor||'')).toLowerCase().includes(b));
+  const b=$('busca').value.toLowerCase(),t=dados.por_tecnico.filter(r=>(r.tecnico+' '+(r.supervisor||'')).toLowerCase().includes(b)&&(!supSel||(r.supervisor||'(sem supervisor)')===supSel));
   const temPos=false; // posição geral/nota ficam só na aba Desempenho
   tabela('tTec',[['tecnico_sup','Técnico'],['meses_projeto','Tempo do Técnico no Projeto'],['atividade','Atividade'],['propriedades','Propriedades'],['visitas','Visitas'],['coleta_dados','Coleta'],['dias_com_visita','Dias com visita'],['ultima_visita','Última visita']],t.map(r=>({...r,tecnico_sup:r.tecnico})),'tec','visitas');
   const temReg=(dados.por_regiao||[]).length>0;
@@ -461,18 +461,29 @@ function carteira(d){
   {const T=(d.carteira.por_tecnico||[]).filter(r=>r.ori_concluida>0).map(r=>({n:titulo(r.nome),c:r.ori_concluida,t:r.ori_total})).sort((x,y)=>y.c-x.c).slice(0,15);
    const rvT={id:'rvT',afterDatasetsDraw(ch){const c=ch.ctx;c.save();c.fillStyle='#7a2455';c.font='600 11px sans-serif';c.textBaseline='middle';ch.getDatasetMeta(0).data.forEach((b,i)=>c.fillText(fmt(T[i].c),b.x+6,b.y));c.restore()}};
    graf('gOriTec',{type:'bar',data:{labels:T.map(x=>x.n),datasets:[{label:'Orientações concluídas',data:T.map(x=>x.c),backgroundColor:'#a23b72',borderRadius:4}]},plugins:[rvT],options:{indexAxis:'y',maintainAspectRatio:false,layout:{padding:{right:46}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmt(T[c.dataIndex].c)} concluídas de ${fmt(T[c.dataIndex].t)} (${pct(T[c.dataIndex].c,T[c.dataIndex].t)})`}}},scales:{x:ey,y:{grid:{display:false},ticks:{autoSkip:false,font:{size:11}}}}}})}
-  cartDados=d.carteira;cartSup=null;renderCart();
+  cartDados=d.carteira;renderCart();
 }
-let cartDados=null,cartSup=null;
+let cartDados=null;
+// Seleção de supervisor compartilhada: clicar no gráfico, na tabela de supervisores ou na carteira filtra os técnicos em todos os lugares.
+function selSup(n){supSel=(supSel===n?null:n);aplicaSel()}
+function aplicaSel(){if(!dados)return;desenhaSupTec();listas();renderCart()}
+function desenhaSupTec(){
+  if(!dados)return;
+  if(supSel&&!dados.por_supervisor.some(r=>r.supervisor===supSel))supSel=null;
+  barraH('gSup',dados.por_supervisor,'supervisor','visitas','Visitas',{cor:r=>(!supSel||r.supervisor===supSel)?'#2f7d4f':'#bcd8c5',click:r=>selSup(r.supervisor)});
+  const tt=supSel?dados.por_tecnico.filter(r=>(r.supervisor||'(sem supervisor)')===supSel):dados.por_tecnico;
+  barraH('gTec',tt.slice(0,15),'tecnico','visitas','Visitas');
+  const h=$('gTec').closest('.graf').querySelector('h2');
+  if(h)h.textContent=supSel?`Técnicos de ${titulo(supSel)} com mais visitas (${Math.min(15,tt.length)})`:'15 técnicos com mais visitas';
+}
 function renderCart(){
   if(!cartDados)return;const t=cartDados.total,ps=cartDados.por_supervisor;
-  if(cartSup&&!ps.some(r=>r.nome===cartSup))cartSup=null;
-  const tec=cartSup?cartDados.por_tecnico.filter(r=>(r.supervisores||[]).includes(cartSup)):cartDados.por_tecnico;
-  tabCart('tCartSup',ps,t,'Supervisor',cartSup);
-  tabCart('tCartTec',tec,cartSup?ps.find(r=>r.nome===cartSup):t,'Técnico');
-  $('tCartTecH').textContent=cartSup?`Por técnico · ${titulo(cartSup)} (clique de novo no supervisor para ver todos)`:'Por técnico';
+  const tec=supSel?cartDados.por_tecnico.filter(r=>(r.supervisores||[]).includes(supSel)):cartDados.por_tecnico;
+  tabCart('tCartSup',ps,t,'Supervisor',supSel);
+  tabCart('tCartTec',tec,supSel?ps.find(r=>r.nome===supSel):t,'Técnico');
+  $('tCartTecH').textContent=supSel?`Por técnico · ${titulo(supSel)} (clique de novo no supervisor para ver todos)`:'Por técnico';
 }
-$('tCartSup').addEventListener('click',e=>{const tr=e.target.closest('tbody tr[data-nome]');if(!tr)return;const n=tr.dataset.nome;cartSup=cartSup===n?null:n;renderCart()});
+$('tCartSup').addEventListener('click',e=>{const tr=e.target.closest('tbody tr[data-nome]');if(!tr)return;selSup(tr.dataset.nome)});
 const DIAS=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
 
 const PAL_PF=['#16472a','#5f9a6b','#2f7d4f','#a3c9ab','#c9730a','#2b59a8','#8a8f9a'];
@@ -581,8 +592,8 @@ async function atualiza(){
     graf('gDow',{type:'bar',data:{labels:DIAS,datasets:[{label:'Visitas',data:DIAS.map((_,i)=>(d.dia_semana.find(x=>x.dia===i+1)||{visitas:0}).visitas),backgroundColor:'#6fb38a',borderRadius:5}]},plugins:[valTopo],options:{valTopo:true,layout:{padding:{top:22}},maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:tkX}}}});
     graf('gFreq',{type:'bar',data:{labels:d.frequencia.map(r=>r.faixa),datasets:[{label:'Propriedades',data:d.frequencia.map(r=>r.propriedades),backgroundColor:'#a23b72',borderRadius:5}]},plugins:[valTopo],options:{valTopo:true,layout:{padding:{top:22}},maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:tkX}}}});
     const pa=d.por_atividade.slice().sort((a,b)=>b.visitas-a.visitas);
-    barraH('gAtiv',pa,'atividade','visitas','Visitas');barraH('gSup',d.por_supervisor,'supervisor','visitas','Visitas');
-    barraH('gTec',d.por_tecnico.slice(0,15),'tecnico','visitas','Visitas');barraH('gMun',d.por_municipio.slice(0,15),'municipio','visitas','Visitas');
+    barraH('gAtiv',pa,'atividade','visitas','Visitas');
+    desenhaSupTec();barraH('gMun',d.por_municipio.slice(0,15),'municipio','visitas','Visitas');
     destaques(d);listas();carteira(d);inicio(d);desativacoes(d);assistDes(d);perfilProd();carregaAno();mapaCeara();carregaDown();
     $('rod').innerHTML=`Fonte: SisATeG (acompanhamento mensal de visitas, sem visitas excluídas e sem o projeto Treinamento SP). Total de visitas padrão = visitas que não são coleta de dados. Propriedades ativas/inativas: situação oficial atual de cada propriedade visitada no período. Orientações: as registradas nas visitas do período, com a situação atual. Dados até ${br(window.__max)}.`;
   }catch(e){if(meu===atuSeq)erro(e.message)}finally{if(meu===atuSeq)$('carr').style.display='none'}
