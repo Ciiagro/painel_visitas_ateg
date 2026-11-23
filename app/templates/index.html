@@ -203,7 +203,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#7a5ba6" data-i="nota"></span><div class="g-tit"><h2>Tipo de visita</h2><p class="formula">Padrão, coleta de dados, retorno, virtual e zero</p></div></div><div class="cv"><canvas id="gTipo"></canvas></div></div>
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#0b7a80" data-i="cal"></span><div class="g-tit"><h2>Visitas por dia da semana</h2></div></div><div class="cv"><canvas id="gDow"></canvas></div></div>
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#a23b72" data-i="repetir"></span><div class="g-tit"><h2>Quantas vezes cada propriedade foi visitada</h2><p class="formula">Propriedades por número de visitas no período</p></div></div><div class="cv"><canvas id="gFreq"></canvas></div><p class="formula" style="margin:6px 2px">Clique numa barra para ver os técnicos e os tipos de visita dessas propriedades.</p><div id="freqDet" class="tabwrap" style="display:none"></div></div>
-      <div class="graf" style="grid-column:1/-1"><div class="g-topo"><span class="ico g" style="--cor:#2b59a8" data-i="barras"></span><div class="g-tit"><h2 id="triTit">Crescimento por trimestre</h2><p class="formula">Visitas de cada trimestre do ano, comparadas ao trimestre anterior (média por dia, para o trimestre em andamento ser justo)</p></div></div><div class="cv"><canvas id="gTri"></canvas></div><div id="triTab" class="tw" style="max-height:none;margin-top:8px"></div></div>
+      <div class="graf" style="grid-column:1/-1"><div class="g-topo"><span class="ico g" style="--cor:#2b59a8" data-i="barras"></span><div class="g-tit"><h2 id="triTit">Crescimento por trimestre</h2><p class="formula">Escolha abaixo o que quer comparar entre os trimestres do ano. O trimestre em andamento ainda está incompleto, por isso não entra na comparação.</p></div></div><div id="triChips" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0"></div><div class="cv"><canvas id="gTri"></canvas></div><div id="triTab" class="tw" style="max-height:none;margin-top:8px"></div></div>
     </div>
   </section>
   <section class="painel" id="p-ano">
@@ -371,16 +371,19 @@ function kpis(c,a,ev){
 }
 let FD={faixa:'',L:[],tipo:'visitas'};
 const FD_TIPOS=[['visitas','Todos'],['padrao','Padrão'],['coleta','Coleta de dados'],['retorno','Retorno'],['virtual','Virtual']];
+let TRI={ano:0,T:[],m:'visitas'};
+const TRI_M=[['visitas','Visitas'],['propriedades','Propriedades assistidas'],['tecnicos','Técnicos']];
 async function carregaTri(){
-  try{const r=await api('/api/por-trimestre?'+qs()),T=r.trimestres;if(!T.length)return;
-    $('triTit').textContent='Crescimento por trimestre — '+r.ano;
-    const mDia=t=>t.dias?t.visitas/t.dias:0;
-    T.forEach((t,i)=>{t.vd=mDia(t);t.cres=i&&T[i-1].vd?(t.vd-T[i-1].vd)/T[i-1].vd*100:null;t.vt=t.tecnicos?t.visitas/t.tecnicos:0});
-    graf('gTri',{type:'bar',data:{labels:T.map(t=>t.tri+'º trimestre'+(t.parcial?' (em andamento)':'')),datasets:[{label:'Visitas',data:T.map(t=>t.visitas),backgroundColor:T.map(t=>t.parcial?'#9fc3a9':'#2f7d4f'),borderRadius:5}]},plugins:[valTopo],options:{valTopo:true,layout:{padding:{top:22}},maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:tkX}}}});
-    const cr=v=>v==null?'—':'<span class="'+(v>0.05?'pos':v<-0.05?'neg':'')+'">'+(v>0?'▲ ':v<0?'▼ ':'')+Math.abs(v).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%</span>';
-    $('triTab').innerHTML='<table><thead><tr><th class="l">Trimestre</th><th>Visitas</th><th>Propriedades</th><th>Técnicos</th><th>Visitas por técnico</th><th>Visitas por dia</th><th>Crescimento (visitas por dia)</th></tr></thead><tbody>'+
-     T.map(t=>'<tr><td class="l">'+t.tri+'º trimestre'+(t.parcial?' <small class="sub">('+t.dias+' de '+t.dias_tri+' dias)</small>':'')+'</td><td>'+fmt(t.visitas)+'</td><td>'+fmt(t.propriedades)+'</td><td>'+fmt(t.tecnicos)+'</td><td>'+t.vt.toLocaleString('pt-BR',{maximumFractionDigits:1})+'</td><td>'+t.vd.toLocaleString('pt-BR',{maximumFractionDigits:1})+'</td><td>'+cr(t.cres)+'</td></tr>').join('')+'</tbody></table>'
-  }catch(e){}}
+  try{const r=await api('/api/por-trimestre?'+qs());if(!r.trimestres.length)return;TRI.ano=r.ano;TRI.T=r.trimestres;triDesenha()}catch(e){}}
+function triDesenha(){
+  const T=TRI.T,m=TRI.m,nome=TRI_M.find(x=>x[0]===m)[1];
+  $('triTit').textContent='Evolução por trimestre — '+TRI.ano;
+  $('triChips').innerHTML=TRI_M.map(([c,n])=>{const on=c===m;return '<button type="button" data-c="'+c+'" style="cursor:pointer;border:1px solid '+(on?'var(--verde)':'var(--linha)')+';background:'+(on?'var(--verde-esc)':'#fff')+';color:'+(on?'#fff':'var(--verde-esc)')+';border-radius:999px;padding:4px 14px;font:inherit;font-size:13px">'+n+'</button>'}).join('');
+  $('triChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{TRI.m=b.dataset.c;triDesenha()});
+  graf('gTri',{type:'bar',data:{labels:T.map(t=>t.tri+'º trimestre'+(t.parcial?' (em andamento)':'')),datasets:[{label:nome,data:T.map(t=>t[m]),backgroundColor:T.map(t=>t.parcial?'#9fc3a9':'#2f7d4f'),borderRadius:5}]},plugins:[valTopo],options:{valTopo:true,layout:{padding:{top:22}},maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:tkX}}}});
+  const cr=(t,i)=>{if(t.parcial)return '<small class="sub">em andamento ('+t.dias+' de '+t.dias_tri+' dias)</small>';if(!i||!T[i-1][m])return '—';const v=(t[m]-T[i-1][m])/T[i-1][m]*100;return '<span class="'+(v>0.05?'pos':v<-0.05?'neg':'')+'">'+(v>0?'▲ ':v<0?'▼ ':'')+Math.abs(v).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%</span>'};
+  $('triTab').innerHTML='<table style="max-width:620px"><thead><tr><th class="l">Trimestre</th><th>'+nome+'</th><th>Mudança sobre o trimestre anterior</th></tr></thead><tbody>'+
+   T.map((t,i)=>'<tr><td class="l">'+t.tri+'º trimestre</td><td>'+fmt(t[m])+'</td><td>'+cr(t,i)+'</td></tr>').join('')+'</tbody></table>'}
 async function freqDet(faixa){const el=$('freqDet');el.style.display='block';el.innerHTML='<p class="formula">Carregando…</p>';
   try{const r=await api('/api/freq-detalhe?'+qs()+'&faixa='+encodeURIComponent(faixa));FD={faixa,L:r.linhas,tipo:'visitas'};
     el.innerHTML='<div style="border-top:1px solid var(--linha);margin-top:10px;padding-top:12px">'+
