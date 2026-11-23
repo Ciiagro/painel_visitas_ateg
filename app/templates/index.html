@@ -369,7 +369,7 @@ function kpis(c,a,ev){
   $('kE').innerHTML=cd(['supervisores','Supervisores'])+cd(['tecnicos','Técnicos'])+bit('Atividades atendidas',fmt(nat),'<small>com visita no período</small>')+cd(['municipios','Municípios atendidos']);
 }
 let FD={faixa:'',L:[],tipo:'visitas'};
-const FD_TIPOS=[['visitas','Todos'],['presencial','Presencial'],['virtual','Virtual'],['retorno','Retorno'],['coleta','Coleta de dados']];
+const FD_TIPOS=[['visitas','Todos'],['padrao','Padrão'],['coleta','Coleta de dados'],['retorno','Retorno'],['virtual','Virtual']];
 async function freqDet(faixa){const el=$('freqDet');el.style.display='block';el.innerHTML='<p class="formula">Carregando…</p>';
   try{const r=await api('/api/freq-detalhe?'+qs()+'&faixa='+encodeURIComponent(faixa));FD={faixa,L:r.linhas,tipo:'visitas'};
     el.innerHTML='<div style="border-top:1px solid var(--linha);margin-top:10px;padding-top:12px">'+
@@ -387,13 +387,13 @@ function freqDesenha(){const k=FD.tipo,q=($('fdBusca').value||'').trim().toLower
   const max=Math.max(1,...L.map(x=>x[k]));
   $('fdQtd').textContent='· '+fmt(L.length)+' técnicos';
   const col=(c,n)=>'<th'+(c===k?' style="color:var(--verde)"':'')+'>'+n+'</th>';
-  $('fdTab').innerHTML='<table><thead><tr><th class="l" style="position:sticky;top:0">Técnico</th>'+FD_TIPOS.slice(1).map(([c,n])=>col(c,n==='Coleta de dados'?'Coleta':n)).join('')+'<th>Visitas</th></tr></thead><tbody>'+
-   L.map(x=>'<tr><td class="l">'+esc(x.tecnico)+'</td>'+FD_TIPOS.slice(1).map(([c])=>'<td>'+fmt(x[c])+'</td>').join('')+'<td>'+fmt(x.visitas)+'<span class="barra" style="width:'+Math.round(x[k]/max*50)+'px"></span></td></tr>').join('')+'</tbody></table>';
-  $('fdNota').textContent='Mostra os técnicos que visitaram essas propriedades, com o total de visitas de cada tipo. Uma visita pode ter mais de um tipo (ex.: presencial com coleta).'}
+  $('fdTab').innerHTML='<table><thead><tr><th class="l" style="position:sticky;top:0">Técnico</th>'+'<th>Propriedades</th>'+FD_TIPOS.slice(1).map(([c,n])=>col(c,n==='Coleta de dados'?'Coleta':n)).join('')+'<th>Total de visitas</th></tr></thead><tbody>'+
+   L.map(x=>'<tr><td class="l">'+esc(x.tecnico)+'</td><td>'+fmt(x.propriedades)+'</td>'+FD_TIPOS.slice(1).map(([c])=>'<td>'+fmt(x[c])+'</td>').join('')+'<td>'+fmt(x.visitas)+'<span class="barra" style="width:'+Math.round(x[k]/max*50)+'px"></span></td></tr>').join('')+'</tbody></table>';
+  $('fdNota').textContent='Cada propriedade desta faixa foi visitada o número de vezes indicado, então Total de visitas = Propriedades × número de visitas (ex.: 20 propriedades com 2 visitas = 40 visitas). Os tipos são contados por visita: Padrão (sem coleta, retorno ou virtual) + Coleta + Retorno + Virtual.'}
 const graf=(id,cfg)=>{if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg)};
 const ey={beginAtZero:true,grid:{color:'#e8f0ea'},ticks:{callback:v=>fmt(v)}},ex={grid:{display:false}};
 function area(id,rot,labels,vals,cor){const ctx=$(id).getContext('2d'),g=ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,cor+'55');g.addColorStop(1,cor+'05');
-  graf(id,{type:'line',data:{labels,datasets:[{label:rot,data:vals,borderColor:cor,backgroundColor:g,fill:true,tension:.3,pointRadius:vals.length>40?0:3,pointBackgroundColor:cor,borderWidth:2.2}]},options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:{maxTicksLimit:12}}}}})}
+  graf(id,{type:'line',data:{labels,datasets:[{label:rot,data:vals,borderColor:cor,backgroundColor:g,fill:true,tension:.3,pointRadius:vals.length>40?0:3,pointBackgroundColor:cor,borderWidth:2.2}]},plugins:[valTopo],options:{valTopo:vals.length<=31,layout:{padding:{top:20}},maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:{maxTicksLimit:12}}}}})}
 function barraH(id,rows,k,v,rot,op){op=op||{};graf(id,{type:'bar',data:{labels:rows.map(r=>quebra(r[k],26)),datasets:[{label:rot,data:rows.map(r=>r[v]),backgroundColor:op.cor?rows.map(op.cor):'#2f7d4f',borderRadius:5,barPercentage:.55,categoryPercentage:.9}]},plugins:[valLado],options:{valLado:true,onClick:op.click?((e,els)=>{if(els.length)op.click(rows[els[0].index])}):undefined,onHover:op.click?((e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default'}):undefined,indexAxis:'y',maintainAspectRatio:false,layout:{padding:{right:46}},plugins:{legend:{display:false}},scales:{x:ey,y:{grid:{display:false},ticks:{autoSkip:false,color:'#3d4a43',padding:8,font:{size:11,weight:'400'}}}}}})}
 const ordena=(rows,k,d)=>[...rows].sort((x,y)=>{const a=x[k]??'',b=y[k]??'';return(typeof a==='string'?a.localeCompare(b,'pt-BR'):(a-b))*d});
 function tabela(id,cols,rows,chave,dest){
