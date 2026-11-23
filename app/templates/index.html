@@ -113,7 +113,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
 .insight .bulb{width:48px;height:48px;border-radius:50%;background:var(--verde);color:#fff;display:grid;place-items:center;flex:none}.insight .bulb svg{width:26px;height:26px}
 .insight h3{margin:0;font-size:18px;color:var(--verde-esc)}.insight p{margin:2px 0 0;font-size:13.5px;color:var(--mut)}.insight .btn{margin-left:auto;white-space:nowrap}
 .ini-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px;margin-bottom:16px}@media(max-width:1100px){.ini-grid{grid-template-columns:1fr}}
-.rank{display:grid;grid-template-columns:26px minmax(90px,1.1fr) 2fr 52px 76px;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid var(--linha);font-size:13.5px}
+.rank{display:grid;grid-template-columns:26px minmax(90px,1.1fr) 2fr 52px;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid var(--linha);font-size:13.5px}
 .rank .n{width:22px;height:22px;border-radius:50%;background:#e4f1e8;color:var(--verde-esc);display:grid;place-items:center;font-size:12px;font-weight:600}
 .bar{height:10px;background:#e8f0ea;border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;border-radius:6px}
 .prio{display:inline-block;padding:2px 12px;border-radius:6px;font-weight:600;font-size:12px}.prio.alta{background:#fbe0de;color:#b3261e}.prio.media{background:#fdf0d0;color:#9a6700}.prio.baixa{background:#dff3e6;color:#1b7f5c}
@@ -128,7 +128,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
 #p-ano .kpis .kpi>b{font-size:clamp(34px,22cqw,52px);color:var(--cor);margin:10px 0 4px;letter-spacing:-.02em}
 #p-ano .kpis .kpi .k-var{font-size:12.5px}#p-ano .kpis .kpi .k-var small{font-size:12px}
 .kpis.k4{grid-template-columns:repeat(4,minmax(0,1fr))}@media(max-width:560px){.kpis.k4{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.insight{flex-wrap:wrap}.insight .btn{margin-left:0}.rank{grid-template-columns:22px 1fr 44px 70px}.rank .bar{display:none}}
+@media(max-width:700px){.insight{flex-wrap:wrap}.insight .btn{margin-left:0}.rank{grid-template-columns:22px 1fr 44px}.rank .bar{display:none}}
 </style>
 </head>
 <body>
@@ -715,9 +715,9 @@ function inicio(d){
   const M=d.municipios_comparacao.map(m=>({...m,taxa:tx(m.validas,m.visitas),taxa_ant:tx(m.validas_ant,m.visitas_ant)}));
   const topo=M.filter(m=>m.validas_ant>=MINBASE&&m.validas<m.validas_ant).map(m=>({...m,v:qd(m.validas,m.validas_ant)})).sort((x,y)=>x.v-y.v||(y.validas_ant-y.validas)-(x.validas_ant-x.validas)).slice(0,5);
   const maisAt=M.filter(m=>m.visitas>0).sort((x,y)=>y.visitas-x.visitas).slice(0,8),mxv=Math.max(1,...maisAt.map(m=>m.visitas));
-  $('iniMunSub').textContent='Top 8 por nº de visitas no período · variação contra o período anterior';
-  $('iniMun').innerHTML=maisAt.length?maisAt.map((m,i)=>{const v=qd(m.visitas,m.visitas_ant);
-    return`<div class="rank"><span class="n">${i+1}</span><span>${esc(m.municipio)}</span><div class="bar"><i style="width:${(m.visitas/mxv*100).toFixed(0)}%;background:#2f7d4f"></i></div><b>${fmt(m.visitas)}</b><span class="${v===null?'':v>0.05?'pos':v<-0.05?'neg':''}">${v===null?'—':(v>0.05?'▲':v<-0.05?'▼':'=')+' '+pc(v)}</span></div>`}).join('')
+  $('iniMunSub').textContent='Top 8 por nº de visitas no período';
+  $('iniMun').innerHTML=maisAt.length?maisAt.map((m,i)=>{
+    return`<div class="rank"><span class="n">${i+1}</span><span>${esc(m.municipio)}</span><div class="bar"><i style="width:${(m.visitas/mxv*100).toFixed(0)}%;background:#2f7d4f"></i></div><b>${fmt(m.visitas)}</b></div>`}).join('')
     :'<p class="formula" style="margin:16px 4px">Nenhuma visita no período.</p>';
   // acompanhamento operacional
   const op=[['Coletas de dados','coleta_dados','nota','#c9730a'],['Visitas de retorno','retorno','repetir','#2b59a8'],['Supervisores','supervisores','pessoas','#0b7a80'],['Técnicos','tecnicos','pessoa','#a23b72'],['Municípios atendidos','municipios','pin','#7a8f2a']];
