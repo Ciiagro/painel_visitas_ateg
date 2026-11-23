@@ -897,11 +897,12 @@ async function carregaAno(){
         plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt(c.raw)}`}}},
         scales:{y:{beginAtZero:true,title:{display:true,text:'Visitas e propriedades'},ticks:{callback:v=>fmt(v)}},
           y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'Municípios'}}}}});
+    const pctOri=(c,t)=>t>0?(c/t*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%':'—';
     const vari=(a,i)=>{if(!i)return '—';const b=A[i-1];if(parcial(a)||parcial(b)||!b.visitas)return '—';
       const v=(a.visitas-b.visitas)/b.visitas*100;return `${v>=0?'▲':'▼'} ${Math.abs(v).toLocaleString('pt-BR',{maximumFractionDigits:1})}%`};
-    $('tAno').innerHTML='<thead><tr><th>Ano</th><th>Visitas</th><th>Propriedades</th><th>Municípios</th><th>Total de orientações</th><th>Orientações concluídas</th></tr></thead><tbody>'+
-      A.map((a,i)=>`<tr><td><b>${a.ano}${parcial(a)?'*':''}</b></td><td>${fmt(a.visitas)}</td><td>${fmt(a.propriedades)}</td><td>${fmt(a.municipios)}</td><td>${d.tem_orientacoes?fmt(a.ori_total):'—'}</td><td>${d.tem_orientacoes?fmt(a.ori_concluida):'—'}</td></tr>`).join('')+
-      `<tr><td><b>Total</b></td><td><b>${fmt(T.visitas)}</b></td><td><b>${fmt(T.propriedades)}</b></td><td><b>${fmt(T.municipios)}</b></td><td><b>${d.tem_orientacoes?fmt(T.ori_total):'—'}</b></td><td><b>${d.tem_orientacoes?fmt(T.ori_concluida):'—'}</b></td></tr></tbody>`;
+    $('tAno').innerHTML='<thead><tr><th>Ano</th><th>Visitas</th><th>Propriedades</th><th>Municípios</th><th>Total de orientações</th><th>Orientações concluídas</th><th>% concluídas</th></tr></thead><tbody>'+
+      A.map((a,i)=>`<tr><td><b>${a.ano}${parcial(a)?'*':''}</b></td><td>${fmt(a.visitas)}</td><td>${fmt(a.propriedades)}</td><td>${fmt(a.municipios)}</td><td>${d.tem_orientacoes?fmt(a.ori_total):'—'}</td><td>${d.tem_orientacoes?fmt(a.ori_concluida):'—'}</td><td>${d.tem_orientacoes?pctOri(a.ori_concluida,a.ori_total):'—'}</td></tr>`).join('')+
+      `<tr><td><b>Total</b></td><td><b>${fmt(T.visitas)}</b></td><td><b>${fmt(T.propriedades)}</b></td><td><b>${fmt(T.municipios)}</b></td><td><b>${d.tem_orientacoes?fmt(T.ori_total):'—'}</b></td><td><b>${d.tem_orientacoes?fmt(T.ori_concluida):'—'}</b></td><td><b>${d.tem_orientacoes?pctOri(T.ori_concluida,T.ori_total):'—'}</b></td></tr></tbody>`;
     const notas=A.filter(parcial).map(a=>`${a.ano}: de ${dbr(a.primeira)} a ${dbr(a.ultima)}`);
     msg.textContent=(notas.length?`* Ano incompleto (${notas.join('; ')}). `:'')+(d.tem_orientacoes?'':'Orientações: rode sql/vw_visitas_anual.sql no servidor para aparecerem. ')+'No total, propriedades e municípios são contados uma vez só, mesmo que apareçam em vários anos. '+(d.completo?'':'ATENÇÃO: só aparecem visitas de 2024 em diante; rode sql/vw_visitas_anual.sql no servidor para ver desde o início da base. ')+(d.ignorados&&d.ignorados.length?`Nesta aba não valem os filtros: ${d.ignorados.join(', ')}.`:'');
   }catch(e){msg.textContent='Não consegui carregar: '+e.message}
