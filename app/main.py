@@ -431,8 +431,19 @@ def por_ano(request: Request):
         total = _linhas(con, f"""SELECT COUNT(DISTINCT id_visita) AS visitas, COUNT(DISTINCT id_propriedade) AS propriedades,
             COUNT(DISTINCT municipio) AS municipios, MIN(dt_visita)::text AS primeira, MAX(dt_visita)::text AS ultima
             FROM {tabela} WHERE {w}""", p)[0]
+        # Orientações são da VISITA (a tabela repete linhas por visita): 1 linha por id_visita, somando por ano.
+        tem_ori = con.execute(text("SELECT count(*) FROM pg_attribute WHERE attrelid = to_regclass(:t) AND attname IN ('ori_total','ori_concluida') AND NOT attisdropped"), {"t": tabela}).scalar() == 2
+        if tem_ori:
+            por = {r["ano"]: r for r in _linhas(con, f"""SELECT ano, COALESCE(SUM(ori_total),0) AS ori_total, COALESCE(SUM(ori_concluida),0) AS ori_concluida
+                FROM (SELECT DISTINCT ON (id_visita) id_visita, EXTRACT(YEAR FROM dt_visita)::int AS ano, ori_total, ori_concluida
+                      FROM {tabela} WHERE {w} ORDER BY id_visita, dt_visita DESC) x GROUP BY ano""", p)}
+            for a_ in anos:
+                a_["ori_total"] = int(por.get(a_["ano"], {}).get("ori_total", 0))
+                a_["ori_concluida"] = int(por.get(a_["ano"], {}).get("ori_concluida", 0))
+            total["ori_total"] = sum(a_["ori_total"] for a_ in anos)
+            total["ori_concluida"] = sum(a_["ori_concluida"] for a_ in anos)
     ignorados = [k for k in ("regiao", "sindicato", "supervisor", "ativa", "situacao") if f.get(k)]
-    return {"anos": anos, "total": total, "completo": completo, "ignorados": ignorados}
+    return {"anos": anos, "total": total, "completo": completo, "ignorados": ignorados, "tem_orientacoes": tem_ori}
 
 
 templates.env.filters["milhar"] = lambda v: "–" if not v else f"{int(v):,}".replace(",", ".")

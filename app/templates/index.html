@@ -76,6 +76,7 @@ select:hover,input:hover{border-color:#bfd9c8}select.on{border-color:var(--verde
 .kpis.cart{margin-top:-6px}.kpis.cart .kpi{grid-template-areas:"topo topo" "val val" "var var"}.painel{display:none}.painel.on{display:block}
 .fora-ini .escopo,.fora-ini .banda{display:none}
 #p-ini .insight,#iniKpis{display:none}
+.aba-ano label:has(#atalho),.aba-ano label:has(#de),.aba-ano label:has(#ate){display:none}
 .graficos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
 @media(min-width:1900px){.graficos{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:1100px){.graficos{grid-template-columns:1fr}}
 .graf{background:var(--surf);border:1px solid var(--linha);border-radius:14px;padding:16px 18px 12px;box-shadow:var(--sombra);min-width:0}
@@ -591,7 +592,7 @@ async function inicia(){
   $('atalho').onchange=e=>{if(e.target.value){atalho(e.target.value);atualiza()}};
   $('limpar').onclick=()=>{[...TXT,...SN].forEach(k=>$(k).value='');$('atalho').value='';atualiza()};
   $('busca').oninput=listas;
-  document.querySelectorAll('.aba').forEach(b=>b.onclick=()=>{document.querySelectorAll('.aba,.painel').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('p-'+b.dataset.p).classList.add('on');document.body.classList.toggle('so-conf',b.dataset.p==='conf');document.body.classList.toggle('fora-ini',b.dataset.p!=='ini');window.dispatchEvent(new Event('resize'))});
+  document.querySelectorAll('.aba').forEach(b=>b.onclick=()=>{document.querySelectorAll('.aba,.painel').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('p-'+b.dataset.p).classList.add('on');document.body.classList.toggle('so-conf',b.dataset.p==='conf');document.body.classList.toggle('fora-ini',b.dataset.p!=='ini');document.body.classList.toggle('aba-ano',b.dataset.p==='ano');window.dispatchEvent(new Event('resize'))});
   document.querySelectorAll('[data-csv]').forEach(b=>b.onclick=()=>csv(b.dataset.csv));
   atualiza();
 }
@@ -898,11 +899,11 @@ async function carregaAno(){
           y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'Municípios'}}}}});
     const vari=(a,i)=>{if(!i)return '—';const b=A[i-1];if(parcial(a)||parcial(b)||!b.visitas)return '—';
       const v=(a.visitas-b.visitas)/b.visitas*100;return `${v>=0?'▲':'▼'} ${Math.abs(v).toLocaleString('pt-BR',{maximumFractionDigits:1})}%`};
-    $('tAno').innerHTML='<thead><tr><th>Ano</th><th>Visitas</th><th>Propriedades</th><th>Municípios</th><th>Variação das visitas</th></tr></thead><tbody>'+
-      A.map((a,i)=>`<tr><td><b>${a.ano}${parcial(a)?'*':''}</b></td><td>${fmt(a.visitas)}</td><td>${fmt(a.propriedades)}</td><td>${fmt(a.municipios)}</td><td>${vari(a,i)}</td></tr>`).join('')+
-      `<tr><td><b>Total</b></td><td><b>${fmt(T.visitas)}</b></td><td><b>${fmt(T.propriedades)}</b></td><td><b>${fmt(T.municipios)}</b></td><td>—</td></tr></tbody>`;
+    $('tAno').innerHTML='<thead><tr><th>Ano</th><th>Visitas</th><th>Propriedades</th><th>Municípios</th><th>Total de orientações</th><th>Orientações concluídas</th></tr></thead><tbody>'+
+      A.map((a,i)=>`<tr><td><b>${a.ano}${parcial(a)?'*':''}</b></td><td>${fmt(a.visitas)}</td><td>${fmt(a.propriedades)}</td><td>${fmt(a.municipios)}</td><td>${d.tem_orientacoes?fmt(a.ori_total):'—'}</td><td>${d.tem_orientacoes?fmt(a.ori_concluida):'—'}</td></tr>`).join('')+
+      `<tr><td><b>Total</b></td><td><b>${fmt(T.visitas)}</b></td><td><b>${fmt(T.propriedades)}</b></td><td><b>${fmt(T.municipios)}</b></td><td><b>${d.tem_orientacoes?fmt(T.ori_total):'—'}</b></td><td><b>${d.tem_orientacoes?fmt(T.ori_concluida):'—'}</b></td></tr></tbody>`;
     const notas=A.filter(parcial).map(a=>`${a.ano}: de ${dbr(a.primeira)} a ${dbr(a.ultima)}`);
-    msg.textContent=(notas.length?`* Ano incompleto (${notas.join('; ')}); a variação só compara anos completos. `:'')+'No total, propriedades e municípios são contados uma vez só, mesmo que apareçam em vários anos. '+(d.completo?'':'ATENÇÃO: só aparecem visitas de 2024 em diante; rode sql/vw_visitas_anual.sql no servidor para ver desde o início da base. ')+(d.ignorados&&d.ignorados.length?`Nesta aba não valem os filtros: ${d.ignorados.join(', ')}.`:'');
+    msg.textContent=(notas.length?`* Ano incompleto (${notas.join('; ')}). `:'')+(d.tem_orientacoes?'':'Orientações: rode sql/vw_visitas_anual.sql no servidor para aparecerem. ')+'No total, propriedades e municípios são contados uma vez só, mesmo que apareçam em vários anos. '+(d.completo?'':'ATENÇÃO: só aparecem visitas de 2024 em diante; rode sql/vw_visitas_anual.sql no servidor para ver desde o início da base. ')+(d.ignorados&&d.ignorados.length?`Nesta aba não valem os filtros: ${d.ignorados.join(', ')}.`:'');
   }catch(e){msg.textContent='Não consegui carregar: '+e.message}
 }
 desempInit();

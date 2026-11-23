@@ -11,7 +11,9 @@ SELECT a.id_visita,
        NULLIF(btrim(a.tecnico_responsavel, E' \t\r\n'), '')    AS tecnico,
        COALESCE(a.flg_coleta_dados, '')  ~* '^(s|v)'           AS coleta_dados,
        COALESCE(a.visita_presencial, '') ~* '^(s|v)'           AS presencial,
-       COALESCE(a.visita_valida, '')     ~* '^(s|v)'           AS valida
+       COALESCE(a.visita_valida, '')     ~* '^(s|v)'           AS valida,
+       COALESCE(a.ori_total_geral, 0)                          AS ori_total,
+       COALESCE(a.ori_concluida, 0)                            AS ori_concluida
 FROM public.acompanhamento_mensal_visitas a
 WHERE a.id_visita IS NOT NULL
   AND a.dt_visita < (CURRENT_DATE + 1)::timestamp;            -- só até hoje
