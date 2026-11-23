@@ -57,7 +57,7 @@ select:hover,input:hover{border-color:#bfd9c8}select.on{border-color:var(--verde
 .o-leg{flex:1 1 100%;display:flex;flex-wrap:wrap}.o-leg>div{flex:1 1 120px;padding:0 14px;border-left:1px solid var(--linha)}.o-leg>div:first-child{border-left:0}
 .o-leg .d{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.o-leg span{font-size:12.5px;color:#3d5045}.o-leg b{display:block;font-size:15px;color:var(--verde-esc)}.o-leg em{font-style:normal;font-size:12px;color:var(--mut);font-weight:400;margin-left:4px}
 .kg{margin:14px 4px 8px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);font-weight:700}
-.tw table td:first-child{white-space:nowrap}#tCartSup,#tCartTec{font-size:12px}#tCartSup th,#tCartSup td,#tCartTec th,#tCartTec td{padding:6px 6px!important}#tCartSup td:first-child,#tCartTec td:first-child{white-space:nowrap;max-width:210px;overflow:hidden;text-overflow:ellipsis}
+.tw table td:first-child{white-space:nowrap}#tCartSup,#tCartTec{font-size:12px}#tCartSup tbody tr{cursor:pointer}#tCartSup tbody tr:hover td{background:#eef6f0}#tCartSup tbody tr.sel td{background:#d9ecde;font-weight:700}#tCartSup th,#tCartSup td,#tCartTec th,#tCartTec td{padding:6px 6px!important}#tCartSup td:first-child,#tCartTec td:first-child{white-space:nowrap;max-width:210px;overflow:hidden;text-overflow:ellipsis}
 .ci{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 20%,#fff)}.ci svg{width:17px;height:17px}.banda[data-g=V] .b-tit>svg{color:#2f7d4f}.banda[data-g=P] .b-tit>svg{color:#2b59a8}.banda[data-g=E] .b-tit>svg{color:#0b7a80}.banda[data-g=O] .b-tit>svg{color:#c9730a}
 .kpi-vazio{grid-column:1/-1;font-size:12px;color:var(--mut);padding:2px 4px}
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
@@ -233,7 +233,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
       <div id="desCorpo" style="margin-top:6px"><div class="tw" style="max-height:360px"><table id="tDes"></table></div></div></div></div>
     <div class="grid2" style="margin-top:16px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start">
       <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#0b7a80" data-i="pessoas"></span><div class="g-tit"><h2>Por supervisor</h2></div><button class="btn sec" data-csv="cart_sup">CSV</button></div><div class="tw" style="max-height:470px"><table id="tCartSup"></table></div></div>
-      <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#a23b72" data-i="pessoa"></span><div class="g-tit"><h2>Por técnico</h2></div><button class="btn sec" data-csv="cart_tec">CSV</button></div><div class="tw" style="max-height:470px"><table id="tCartTec"></table></div></div>
+      <div class="graf"><div class="g-topo"><span class="ico g" style="--cor:#a23b72" data-i="pessoa"></span><div class="g-tit"><h2 id="tCartTecH">Por técnico</h2></div><button class="btn sec" data-csv="cart_tec">CSV</button></div><div class="tw" style="max-height:470px"><table id="tCartTec"></table></div></div>
     </div>
     <p class="formula" style="margin-top:10px">Ativa/inativa = situação oficial atual da propriedade (cada uma conta uma vez). Orientações = as registradas nas visitas do período (cada visita conta uma vez). “Ativa no SisATeG, inativa na oficial” são propriedades que o SisATeG ainda marca como ativas mas a base oficial já considera inativas.</p>
   </section>
@@ -444,10 +444,10 @@ function kpisCart(t){
    `<div style="flex:6 1 560px;min-width:0"><div class="o-bar">${seg.map(x=>`<i style="width:${tot?(x[1]||0)/tot*100:0}%;background:${x[2]}" title="${x[0]}"></i>`).join('')}</div>
     <div class="o-leg">${leg.map(x=>`<div><span><i class="d" style="background:${x[2]}"></i>${x[0]}</span><b>${fmt(x[1]||0)}<em>(${pct(x[1]||0,tot)})</em></b></div>`).join('')}</div></div>`;
 }
-function tabCart(id,rows,t,rot){
+function tabCart(id,rows,t,rot,sel){
   const c=[['nome',rot],['visitas','Visitas','Total de visitas'],['propriedades','Prop.','Propriedades'],['ativas','Ativas'],['inativas','Inativ.','Inativas'],['ori_total','Orient.','Orientações'],['ori_concluida','Concl.','Concluídas'],['ori_em_execucao','Exec.','Em execução'],['ori_aberta','Abertas'],['ori_cancelada','Canc.','Canceladas']];
   $(id).innerHTML='<thead><tr>'+c.map(([k,n,tt])=>`<th class="${k==='nome'?'l':''}" title="${tt||n}">${n}</th>`).join('')+'<th>% concl.</th></tr></thead><tbody>'+
-   rows.map(r=>'<tr>'+c.map(([k])=>`<td class="${k==='nome'?'l':''}"${k==='nome'?` title="${esc(r[k])}"`:''}>${k==='nome'?esc(r[k]):fmt(r[k])}</td>`).join('')+`<td>${pct(r.ori_concluida,r.ori_total)}</td></tr>`).join('')+'</tbody>'+
+   rows.map(r=>`<tr data-nome="${esc(r.nome)}" class="${sel&&r.nome===sel?'sel':''}">`+c.map(([k])=>`<td class="${k==='nome'?'l':''}"${k==='nome'?` title="${esc(r[k])}"`:''}>${k==='nome'?esc(r[k]):fmt(r[k])}</td>`).join('')+`<td>${pct(r.ori_concluida,r.ori_total)}</td></tr>`).join('')+'</tbody>'+
    (t?`<tfoot><tr>${c.map(([k])=>`<td>${k==='nome'?'Total':fmt(t[k])}</td>`).join('')}<td>${pct(t.ori_concluida,t.ori_total)}</td></tr></tfoot>`:'');
 }
 function carteira(d){
@@ -461,8 +461,18 @@ function carteira(d){
   {const T=(d.carteira.por_tecnico||[]).filter(r=>r.ori_concluida>0).map(r=>({n:titulo(r.nome),c:r.ori_concluida,t:r.ori_total})).sort((x,y)=>y.c-x.c).slice(0,15);
    const rvT={id:'rvT',afterDatasetsDraw(ch){const c=ch.ctx;c.save();c.fillStyle='#7a2455';c.font='600 11px sans-serif';c.textBaseline='middle';ch.getDatasetMeta(0).data.forEach((b,i)=>c.fillText(fmt(T[i].c),b.x+6,b.y));c.restore()}};
    graf('gOriTec',{type:'bar',data:{labels:T.map(x=>x.n),datasets:[{label:'Orientações concluídas',data:T.map(x=>x.c),backgroundColor:'#a23b72',borderRadius:4}]},plugins:[rvT],options:{indexAxis:'y',maintainAspectRatio:false,layout:{padding:{right:46}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmt(T[c.dataIndex].c)} concluídas de ${fmt(T[c.dataIndex].t)} (${pct(T[c.dataIndex].c,T[c.dataIndex].t)})`}}},scales:{x:ey,y:{grid:{display:false},ticks:{autoSkip:false,font:{size:11}}}}}})}
-  tabCart('tCartSup',d.carteira.por_supervisor,t,'Supervisor');tabCart('tCartTec',d.carteira.por_tecnico,t,'Técnico');
+  cartDados=d.carteira;cartSup=null;renderCart();
 }
+let cartDados=null,cartSup=null;
+function renderCart(){
+  if(!cartDados)return;const t=cartDados.total,ps=cartDados.por_supervisor;
+  if(cartSup&&!ps.some(r=>r.nome===cartSup))cartSup=null;
+  const tec=cartSup?cartDados.por_tecnico.filter(r=>(r.supervisores||[]).includes(cartSup)):cartDados.por_tecnico;
+  tabCart('tCartSup',ps,t,'Supervisor',cartSup);
+  tabCart('tCartTec',tec,cartSup?ps.find(r=>r.nome===cartSup):t,'Técnico');
+  $('tCartTecH').textContent=cartSup?`Por técnico · ${titulo(cartSup)} (clique de novo no supervisor para ver todos)`:'Por técnico';
+}
+$('tCartSup').addEventListener('click',e=>{const tr=e.target.closest('tbody tr[data-nome]');if(!tr)return;const n=tr.dataset.nome;cartSup=cartSup===n?null:n;renderCart()});
 const DIAS=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
 
 const PAL_PF=['#16472a','#5f9a6b','#2f7d4f','#a3c9ab','#c9730a','#2b59a8','#8a8f9a'];

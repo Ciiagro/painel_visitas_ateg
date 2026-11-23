@@ -719,6 +719,13 @@ def resumo(request: Request):
         cart_ativ = _carteira(con, TABLE, w, p, "atividade")
         cart_sup = _carteira(con, TABLE, w, p, "supervisor")
         cart_tec = _carteira(con, TABLE, w, p, "tecnico", 500)
+        # Supervisor(es) de cada técnico no período, para a tela filtrar "Por técnico" ao clicar num supervisor em "Por supervisor".
+        _mapa_st = {}
+        for _r in _linhas(con, f"""SELECT DISTINCT COALESCE(tecnico, '(sem técnico)') AS tecnico, COALESCE(supervisor, '(sem supervisor)') AS supervisor
+                                   FROM {TABLE} WHERE {w}""", p):
+            _mapa_st.setdefault(_r["tecnico"], []).append(_r["supervisor"])
+        for _r in cart_tec:
+            _r["supervisores"] = _mapa_st.get(_r["nome"], [])
         # Propriedades desativadas por mês e motivo (vínculo da propriedade encerrado no SisATeG).
         # Se a view ainda não tem as colunas vinculo_* (vw_visitas.sql não foi rodada de novo), o painel segue funcionando.
         desat = {"disponivel": False}
