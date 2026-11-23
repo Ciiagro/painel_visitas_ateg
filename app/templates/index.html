@@ -451,19 +451,20 @@ function listas(){
 function destaques(d){
   const c=d.cards,a=d.anterior,top=(r,k)=>r.length?`<b>${esc(r[0][k])}</b> (${fmt(r[0].visitas)})`:'—';
   const ta=d.por_atividade.slice().sort((x,y)=>y.visitas-x.visitas);
-  const frase=`De <b>${br(d.periodo.de)}</b> a <b>${br(d.periodo.ate)}</b> foram <b>${fmt(c.visitas)} visitas</b> (${variacao(c.visitas,a.visitas)} sobre o período anterior), em <b>${fmt(c.propriedades)} propriedades</b>, por <b>${fmt(c.tecnicos)} técnicos</b> e <b>${fmt(c.supervisores)} supervisores</b>, em ${fmt(c.municipios)} municípios. `+
+  const frase=`De <b>${br(d.periodo.de)}</b> a <b>${br(d.periodo.ate)}</b> foram <b>${fmt(c.visitas)} visitas</b> em <b>${fmt(c.propriedades)} propriedades</b>, por <b>${fmt(c.tecnicos)} técnicos</b> e <b>${fmt(c.supervisores)} supervisores</b>, em ${fmt(c.municipios)} municípios. `+
    `A atividade com mais visitas foi ${top(ta,'atividade')}, o supervisor com mais visitas ${top(d.por_supervisor,'supervisor')}, o técnico ${top(d.por_tecnico,'tecnico')} e o município ${top(d.por_municipio,'municipio')}. `+
    `Média de <b>${c.tecnicos?(c.visitas/c.tecnicos).toLocaleString('pt-BR',{maximumFractionDigits:1}):'—'}</b> visitas por técnico e <b>${pct(c.validas,c.visitas)}</b> de visitas válidas.`;
-  const lista=(rows,sinal)=>rows.length?rows.map(r=>`<div class="d-item"><span>${esc(r.nome)}</span><span class="${r.delta>0?'pos':'neg'}">${r.delta>0?'+':'−'}${fmt(Math.abs(r.delta))} <small style="font-weight:400;color:#64766b">(${fmt(r.anterior)} → ${fmt(r.atual)})</small></span></div>`).join(''):'<p class="d-vazio">Nada neste grupo.</p>';
-  const bloco=(t,x)=>`<div class="d-bloco"><h3>${t}</h3><h4>Mais cresceram</h4>${lista(x.sobem)}<h4>Mais caíram</h4>${lista(x.caem)}</div>`;
-  $('dest').innerHTML=`<h2>Destaques do período</h2><p class="d-resumo">${frase}</p><div class="d-grid">${bloco('Atividades',d.destaques.atividade)}${bloco('Supervisores',d.destaques.supervisor)}${bloco('Técnicos',d.destaques.tecnico)}${bloco('Municípios',d.destaques.municipio)}</div>${relAtiv(d)}`;
+  const lista=(rows)=>rows.length?rows.map(r=>`<div class="d-item"><span>${esc(r.nome)}</span><span><b>${fmt(r.visitas)}</b> <small style="font-weight:400;color:#64766b">visitas${r.propriedades!=null?' · '+fmt(r.propriedades)+' prop.':''}</small></span></div>`).join(''):'<p class="d-vazio">Nada neste grupo.</p>';
+  const rank=(rows,k)=>{const L=rows.filter(x=>x.visitas>0).map(x=>({nome:x[k],visitas:x.visitas,propriedades:x.propriedades})).sort((a,b)=>b.visitas-a.visitas||String(a.nome).localeCompare(b.nome));return{mais:L.slice(0,5),menos:L.length>10?L.slice(-5).reverse():[]}};
+  const bloco=(t,x)=>`<div class="d-bloco"><h3>${t}</h3><h4>Mais visitas</h4>${lista(x.mais)}<h4>Menos visitas</h4>${lista(x.menos)}</div>`;
+  $('dest').innerHTML=`<h2>Destaques do período</h2><p class="d-resumo">${frase}</p><div class="d-grid">${bloco('Atividades',rank(ta,'atividade'))}${bloco('Supervisores',rank(d.por_supervisor,'supervisor'))}${bloco('Técnicos',rank(d.por_tecnico,'tecnico'))}${bloco('Municípios',rank(d.por_municipio,'municipio'))}</div>${relAtiv(d)}`;
 }
 const _peq=new Set(['de','da','do','dos','das','e']);
 function titulo(t){return String(t||'').toLowerCase().split(' ').map((w,i)=>i&&_peq.has(w)?w:w.charAt(0).toUpperCase()+w.slice(1)).join(' ')}
 function pl(n,u,p){return `${fmt(n)} ${n===1?u:(p||u+'s')}`}
 function relAtiv(d){
   const R=d.rel_atv||[];if(!R.length)return'';const tv=R.reduce((s,r)=>s+r.visitas,0)||1;
-  const linhas=R.map(r=>`<div class="rel-a"><p><b class="rel-n">${esc(titulo(r.atividade))}:</b> no período foram realizadas <b>${pl(r.visitas,'visita')}</b> (${r.anterior?variacao(r.visitas,r.anterior)+' em relação ao período anterior, que teve '+fmt(r.anterior):'sem visitas no período anterior'}) em <b>${pl(r.propriedades,'propriedade')} assistida${r.propriedades===1?'':'s'}</b>, por ${pl(r.tecnicos,'técnico')}, em ${pl(r.municipios,'município')}.</p></div>`).join('');
+  const linhas=R.map(r=>`<div class="rel-a"><p><b class="rel-n">${esc(titulo(r.atividade))}:</b> no período foram realizadas <b>${pl(r.visitas,'visita')}</b> em <b>${pl(r.propriedades,'propriedade')} assistida${r.propriedades===1?'':'s'}</b>, por ${pl(r.tecnicos,'técnico')}, em ${pl(r.municipios,'município')}.</p></div>`).join('');
   return `<div class="rel-box"><div class="rel-topo"><h3>Relatório por atividade</h3><button class="btn" id="relCopia" type="button">Copiar texto</button></div><div id="relTxt">${linhas}</div></div>`;
 }
 document.addEventListener('click',e=>{if(e.target.id==='relCopia'){const t=$('relTxt').innerText;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{e.target.textContent='Copiado!'}).catch(()=>{const r=document.createRange();r.selectNodeContents($('relTxt'));const sl=getSelection();sl.removeAllRanges();sl.addRange(r);e.target.textContent='Selecionado: Ctrl+C'})}});
