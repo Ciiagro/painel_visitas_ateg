@@ -512,9 +512,15 @@ def download(request: Request):
                          FROM {TABLE} WHERE tecnico IS NOT NULL AND dt_visita <= :ate GROUP BY 1, 2),
                    -- TURMA = Projeto + Município: 1ª e última visita de qualquer técnico naquele projeto naquele município (toda a base, até o fim do período)
                    tu AS (SELECT projeto, municipio, MIN(dt_visita) AS data_inicial_turma, MAX(dt_visita) AS data_final_turma
-                          FROM {TABLE} WHERE dt_visita <= :ate GROUP BY 1, 2)
-              SELECT g.*, t.data_inicial, t.data_final, tu.data_inicial_turma, tu.data_final_turma
+                          FROM {TABLE} WHERE dt_visita <= :ate GROUP BY 1, 2),
+                   -- Início/Última visita da TURMA = Projeto + Município + Atividade, de qualquer técnico (se o técnico muda, a turma continua a mesma)
+                   ta AS (SELECT projeto, municipio, atividade, MIN(dt_visita) AS turma_inicial, MAX(dt_visita) AS turma_final
+                          FROM {TABLE} WHERE dt_visita <= :ate GROUP BY 1, 2, 3)
+              SELECT g.*, t.data_inicial AS tec_inicial, t.data_final AS tec_final, ta.turma_inicial, ta.turma_final,
+                     tu.data_inicial_turma, tu.data_final_turma
               FROM g LEFT JOIN t ON t.tecnico = g.tecnico AND t.projeto IS NOT DISTINCT FROM g.projeto
+                     LEFT JOIN ta ON ta.projeto IS NOT DISTINCT FROM g.projeto AND ta.municipio IS NOT DISTINCT FROM g.municipio
+                                 AND ta.atividade IS NOT DISTINCT FROM g.atividade
                      LEFT JOIN tu ON tu.projeto IS NOT DISTINCT FROM g.projeto AND tu.municipio IS NOT DISTINCT FROM g.municipio
               ORDER BY g.regiao NULLS LAST, g.sindicato NULLS LAST, g.municipio NULLS LAST, g.supervisor NULLS LAST,
                        g.tecnico NULLS LAST, g.projeto NULLS LAST, g.atividade NULLS LAST
@@ -524,11 +530,13 @@ def download(request: Request):
     cortou = len(rows) > limite
     rows = rows[:limite]
     for r in rows:
-        a, b = r["data_inicial"], r["data_final"]
-        # meses de calendário, do mês da 1ª visita (conta como 1º) até o da última; máx. 24 (o projeto dura no máximo 24 meses)
+        a, b = r.pop("tec_inicial"), r.pop("tec_final")
+        # "Tempo do técnico no projeto": meses de calendário, do mês da 1ª visita DO TÉCNICO (conta como 1º) até o da última; máx. 24
         r["meses"] = min(24, max(1, (b.year - a.year) * 12 + (b.month - a.month) + 1)) if a and b else None
-        r["data_inicial"] = a.isoformat() if a else None
-        r["data_final"] = b.isoformat() if b else None
+        # Início / Última visita da TURMA (projeto + município + atividade, qualquer técnico)
+        ia, ib = r.pop("turma_inicial"), r.pop("turma_final")
+        r["data_inicial"] = ia.isoformat() if ia else None
+        r["data_final"] = ib.isoformat() if ib else None
         # mesmo cálculo para a TURMA (projeto + município)
         ta, tb = r["data_inicial_turma"], r["data_final_turma"]
         r["meses_turma"] = min(24, max(1, (tb.year - ta.year) * 12 + (tb.month - ta.month) + 1)) if ta and tb else None
