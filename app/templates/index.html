@@ -385,7 +385,7 @@ function supDet(){
   tb.querySelectorAll('tbody tr').forEach(tr=>{const nome=tr.cells[0].textContent;tr.style.cursor='pointer';tr.title='Ver os técnicos deste supervisor';
     if(nome===supSel)tr.style.background='#e3f1e7';tr.onclick=()=>selSup(nome)});
   if(!supSel||!dados.por_supervisor.some(r=>r.supervisor===supSel)){supSel=null;box.style.display='none';return}
-  const rows=dados.por_tecnico.filter(r=>(r.supervisor||'(sem supervisor)')===supSel);
+  const rows=dados.por_tecnico.filter(doSup);
   box.style.display='';$('supDetTit').textContent=`Técnicos de ${supSel} (${rows.length})`;
   tabela('tSupDet',[['tecnico','Técnico'],['propriedades','Propriedades'],['visitas','Visitas'],['coleta_dados','Coleta de dados'],['dias_com_visita','Dias com visita'],['ultima_visita','Última visita']],rows,'supdet','visitas');
   $('supDetFechar').onclick=()=>selSup(supSel);
@@ -403,7 +403,7 @@ function listas(){
   $('tAtiv2').insertAdjacentHTML('beforeend',`<tfoot><tr><td class="l">Total</td><td>${fmt(_c.municipios)}</td><td>${fmt(_c.supervisores)}</td><td>${fmt(_c.tecnicos)}</td><td>${fmt(_c.propriedades)}</td><td>${fmt(_t.ativas)}</td><td>${fmt(_t.inativas)}</td><td>${fmt(_c.visitas)}</td><td>${fmt(_t.ori_total)}</td><td>${fmt(_t.ori_concluida)}</td><td>${pct(_t.ori_concluida,_t.ori_total)}</td></tr></tfoot>`);
   tabela('tSup',[['supervisor','Supervisor'],['tecnicos','Técnicos'],['propriedades','Propriedades'],['visitas','Visitas']],dados.por_supervisor,'sup','visitas');
   supDet();
-  const b=$('busca').value.toLowerCase(),t=dados.por_tecnico.filter(r=>(r.tecnico+' '+(r.supervisor||'')).toLowerCase().includes(b)&&(!supSel||(r.supervisor||'(sem supervisor)')===supSel));
+  const b=$('busca').value.toLowerCase(),t=dados.por_tecnico.filter(r=>(r.tecnico+' '+(r.supervisor||'')).toLowerCase().includes(b)&&(!supSel||doSup(r)));
   const temPos=false; // posição geral/nota ficam só na aba Desempenho
   tabela('tTec',[['tecnico_sup','Técnico'],['meses_projeto','Tempo do Técnico no Projeto'],['atividade','Atividade'],['propriedades','Propriedades'],['visitas','Visitas'],['coleta_dados','Coleta'],['dias_com_visita','Dias com visita'],['ultima_visita','Última visita']],t.map(r=>({...r,tecnico_sup:r.tecnico})),'tec','visitas');
   const temReg=(dados.por_regiao||[]).length>0;
@@ -465,13 +465,15 @@ function carteira(d){
 }
 let cartDados=null;
 // Seleção de supervisor compartilhada: clicar no gráfico, na tabela de supervisores ou na carteira filtra os técnicos em todos os lugares.
+// o técnico entra na lista de todos os supervisores com quem teve visita no período
+function doSup(r){return (r.supervisores&&r.supervisores.length?r.supervisores:[r.supervisor||'(sem supervisor)']).includes(supSel)}
 function selSup(n){supSel=(supSel===n?null:n);aplicaSel()}
 function aplicaSel(){if(!dados)return;desenhaSupTec();listas();renderCart()}
 function desenhaSupTec(){
   if(!dados)return;
   if(supSel&&!dados.por_supervisor.some(r=>r.supervisor===supSel))supSel=null;
   barraH('gSup',dados.por_supervisor,'supervisor','visitas','Visitas',{cor:r=>(!supSel||r.supervisor===supSel)?'#2f7d4f':'#bcd8c5',click:r=>selSup(r.supervisor)});
-  const tt=supSel?dados.por_tecnico.filter(r=>(r.supervisor||'(sem supervisor)')===supSel):dados.por_tecnico;
+  const tt=supSel?dados.por_tecnico.filter(doSup):dados.por_tecnico;
   barraH('gTec',tt.slice(0,15),'tecnico','visitas','Visitas');
   const h=$('gTec').closest('.graf').querySelector('h2');
   if(h)h.textContent=supSel?`Técnicos de ${titulo(supSel)} com mais visitas (${Math.min(15,tt.length)})`:'15 técnicos com mais visitas';
@@ -784,7 +786,7 @@ async function carregaTecIn(){
   catch(e){$('tiInfo').textContent=e.message}
 }
 const MAX_PROJ_DIAS=Math.round(24*30.44); // o projeto tem no máximo 24 meses
-const emMeses=d=>{const m=d/30.44;return (m<10?m.toFixed(1):Math.round(m)).toString().replace('.',',')+(Math.round(m*10)/10===1?' mês':' meses')};
+const emMeses=d=>{const m=Math.round(d/30.44);return m+(m===1?' mês':' meses')};
 const mesesCal=n=>n+(n===1?' mês':' meses');
 function tempoAtu(r){if(!r.primeira_visita||!r.ultima_visita)return '';const a=r.primeira_visita,b=r.ultima_visita;return mesesCal(Math.min(24,Math.max(1,(+b.slice(0,4)-+a.slice(0,4))*12+(+b.slice(5,7)-+a.slice(5,7))+1)))}
 function semVisita(r){return r.dias_sem_visita==null?'':emMeses(r.dias_sem_visita)}
