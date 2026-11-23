@@ -368,24 +368,28 @@ function kpis(c,a,ev){
   const nat=(dados.por_atividade||[]).filter(r=>r.atividade&&r.atividade!=='(sem atividade)').length;
   $('kE').innerHTML=cd(['supervisores','Supervisores'])+cd(['tecnicos','Técnicos'])+bit('Atividades atendidas',fmt(nat),'<small>com visita no período</small>')+cd(['municipios','Municípios atendidos']);
 }
-let FD={faixa:'',L:[]};
+let FD={faixa:'',L:[],tipo:'visitas'};
+const FD_TIPOS=[['visitas','Todos'],['presencial','Presencial'],['virtual','Virtual'],['retorno','Retorno'],['coleta','Coleta de dados']];
 async function freqDet(faixa){const el=$('freqDet');el.style.display='block';el.innerHTML='<p class="formula">Carregando…</p>';
-  try{const r=await api('/api/freq-detalhe?'+qs()+'&faixa='+encodeURIComponent(faixa));FD={faixa,L:r.linhas};
-    el.innerHTML='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 6px"><b>Propriedades com '+esc(faixa)+'</b>'+
-    '<select id="fdTipo"><option value="visitas">Todos os tipos de visita</option><option value="presencial">Só presencial</option><option value="virtual">Só virtual</option><option value="retorno">Só retorno</option><option value="coleta">Só coleta de dados</option></select>'+
-    '<input id="fdBusca" type="search" placeholder="Buscar técnico…" style="min-width:180px">'+
-    '<button id="fdFechar" type="button" style="margin-left:auto">Fechar ✕</button></div>'+
-    '<div class="cv" style="height:300px"><canvas id="gFreqTec"></canvas></div>'+
-    '<div id="fdTab" style="max-height:260px;overflow:auto;margin-top:10px"></div><p class="formula" id="fdNota"></p>';
-    $('fdTipo').onchange=$('fdBusca').oninput=freqDesenha;$('fdFechar').onclick=()=>{el.style.display='none'};freqDesenha();
+  try{const r=await api('/api/freq-detalhe?'+qs()+'&faixa='+encodeURIComponent(faixa));FD={faixa,L:r.linhas,tipo:'visitas'};
+    el.innerHTML='<div style="border-top:1px solid var(--linha);margin-top:10px;padding-top:12px">'+
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="font-size:15px">Propriedades com '+esc(faixa)+'</b><span class="formula" id="fdQtd"></span>'+
+    '<button id="fdFechar" type="button" class="btn sec" style="margin-left:auto">Fechar</button></div>'+
+    '<div id="fdChips" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0"></div>'+
+    '<input id="fdBusca" type="search" placeholder="Buscar técnico…" style="width:100%;max-width:280px;padding:7px 10px;border:1px solid var(--linha);border-radius:8px;font:inherit;font-size:13px;background:var(--suave)">'+
+    '<div id="fdTab" style="max-height:300px;overflow:auto;margin-top:10px"></div><p class="formula" id="fdNota" style="margin-top:8px"></p></div>';
+    $('fdBusca').oninput=freqDesenha;$('fdFechar').onclick=()=>{el.style.display='none'};freqDesenha();
   }catch(e){el.innerHTML='<p class="formula">Não foi possível carregar.</p>'}}
-function freqDesenha(){const k=$('fdTipo').value,q=($('fdBusca').value||'').trim().toLowerCase();
-  const L=FD.L.filter(x=>(x[k]||0)>0&&(!q||x.tecnico.toLowerCase().includes(q))).sort((a,b)=>b[k]-a[k]);
-  const rot=$('fdTipo').selectedOptions[0].textContent.replace(/^Só /,'');
-  barraH('gFreqTec',L.slice(0,10),'tecnico',k,rot);
-  $('fdTab').innerHTML='<table><thead><tr><th class="l">Técnico</th><th>Propriedades</th><th>Visitas</th><th>Presencial</th><th>Virtual</th><th>Retorno</th><th>Coleta</th></tr></thead><tbody>'+
-   L.map(x=>'<tr><td class="l">'+esc(x.tecnico)+'</td><td>'+fmt(x.propriedades)+'</td><td>'+fmt(x.visitas)+'</td><td>'+fmt(x.presencial)+'</td><td>'+fmt(x.virtual)+'</td><td>'+fmt(x.retorno)+'</td><td>'+fmt(x.coleta)+'</td></tr>').join('')+'</tbody></table>';
-  $('fdNota').textContent='Gráfico: os 10 técnicos com mais visitas do tipo escolhido ('+fmt(L.length)+' técnicos no total, todos na tabela). Um tipo de visita pode se somar com outro (ex.: presencial com coleta).'}
+function freqDesenha(){const k=FD.tipo,q=($('fdBusca').value||'').trim().toLowerCase();
+  $('fdChips').innerHTML=FD_TIPOS.map(([c,n])=>{const on=c===k;return '<button type="button" data-c="'+c+'" style="cursor:pointer;border:1px solid '+(on?'var(--verde)':'var(--linha)')+';background:'+(on?'var(--verde-esc)':'#fff')+';color:'+(on?'#fff':'var(--verde-esc)')+';border-radius:999px;padding:4px 12px;font:inherit;font-size:13px">'+n+'</button>'}).join('');
+  $('fdChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{FD.tipo=b.dataset.c;freqDesenha()});
+  const L=FD.L.filter(x=>(x[k]||0)>0&&(!q||x.tecnico.toLowerCase().includes(q))).sort((a,b)=>b[k]-a[k]||a.tecnico.localeCompare(b.tecnico));
+  const max=Math.max(1,...L.map(x=>x[k]));
+  $('fdQtd').textContent='· '+fmt(L.length)+' técnicos';
+  const col=(c,n)=>'<th'+(c===k?' style="color:var(--verde)"':'')+'>'+n+'</th>';
+  $('fdTab').innerHTML='<table><thead><tr><th class="l" style="position:sticky;top:0">Técnico</th>'+FD_TIPOS.slice(1).map(([c,n])=>col(c,n==='Coleta de dados'?'Coleta':n)).join('')+'<th>Visitas</th></tr></thead><tbody>'+
+   L.map(x=>'<tr><td class="l">'+esc(x.tecnico)+'</td>'+FD_TIPOS.slice(1).map(([c])=>'<td>'+fmt(x[c])+'</td>').join('')+'<td>'+fmt(x.visitas)+'<span class="barra" style="width:'+Math.round(x[k]/max*50)+'px"></span></td></tr>').join('')+'</tbody></table>';
+  $('fdNota').textContent='Mostra os técnicos que visitaram essas propriedades, com o total de visitas de cada tipo. Uma visita pode ter mais de um tipo (ex.: presencial com coleta).'}
 const graf=(id,cfg)=>{if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg)};
 const ey={beginAtZero:true,grid:{color:'#e8f0ea'},ticks:{callback:v=>fmt(v)}},ex={grid:{display:false}};
 function area(id,rot,labels,vals,cor){const ctx=$(id).getContext('2d'),g=ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,cor+'55');g.addColorStop(1,cor+'05');
@@ -610,7 +614,7 @@ async function atualiza(){
     const tipos=[['Padrão',c.visitas_padrao],['Coleta de dados',c.coleta_dados],['Retorno',c.retorno],['Virtual',c.virtual],['Zero',c.zero]].filter(x=>x[1]>0);
     graf('gTipo',{type:'doughnut',data:{labels:tipos.map(x=>x[0]),datasets:[{data:tipos.map(x=>x[1]),backgroundColor:['#2f7d4f','#c9730a','#2b59a8','#7a5ba6','#c0392b'],borderWidth:2,borderColor:'#fff'}]},options:{maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'right'}}}});
     graf('gDow',{type:'bar',data:{labels:DIAS,datasets:[{label:'Visitas',data:DIAS.map((_,i)=>(d.dia_semana.find(x=>x.dia===i+1)||{visitas:0}).visitas),backgroundColor:'#6fb38a',borderRadius:5}]},plugins:[valTopo],options:{valTopo:true,layout:{padding:{top:22}},maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:tkX}}}});
-    graf('gFreq',{type:'bar',data:{labels:d.frequencia.map(r=>r.faixa),datasets:[{label:'Propriedades',data:d.frequencia.map(r=>r.propriedades),backgroundColor:'#a23b72',borderRadius:5}]},plugins:[valTopo],options:{valTopo:true,layout:{padding:{top:22}},maintainAspectRatio:false,onClick:(e,els)=>{if(els.length)freqDet(d.frequencia[els[0].index].faixa)},plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:tkX}}}});
+    graf('gFreq',{type:'bar',data:{labels:d.frequencia.map(r=>r.faixa),datasets:[{label:'Propriedades',data:d.frequencia.map(r=>r.propriedades),backgroundColor:'#a23b72',borderRadius:5}]},plugins:[valTopo],options:{valTopo:true,layout:{padding:{top:22}},maintainAspectRatio:false,interaction:{mode:'index',intersect:false},onHover:(e,els)=>{e.native.target.style.cursor=els.length?'pointer':'default'},onClick:(e,els)=>{if(els.length)freqDet(d.frequencia[els[0].index].faixa)},plugins:{legend:{display:false}},scales:{y:ey,x:{...ex,ticks:tkX}}}});
     const pa=d.por_atividade.slice().sort((a,b)=>b.visitas-a.visitas);
     barraH('gAtiv',pa,'atividade','visitas','Visitas');
     desenhaSupTec();barraH('gMun',d.por_municipio.slice(0,15),'municipio','visitas','Visitas');
