@@ -86,6 +86,7 @@ select:hover,input:hover{border-color:#bfd9c8}select.on{border-color:var(--verde
 #tTec th:not(:first-child),#tTec td:not(:first-child),#tTecIn th:not(:first-child),#tTecIn td:not(:first-child){text-align:center!important}
 .tw td small.sub{display:block;font-size:11px;color:#6b7a70;margin-top:1px}
 .tw{overflow:auto;max-height:470px;border:1px solid var(--linha);border-radius:10px;margin-top:8px}
+#tDown th{white-space:normal;line-height:1.25;vertical-align:bottom;min-width:84px}
 table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{padding:7px 10px;border-bottom:1px solid var(--linha);text-align:right;white-space:nowrap}
 th{position:sticky;top:0;background:var(--suave);color:var(--verde-esc);font-size:12.5px;cursor:pointer;user-select:none;z-index:1}
 th:first-child,td:first-child{text-align:left;white-space:normal}th.l,td.l{text-align:left}tbody tr:hover td{background:#eef7f0}
@@ -296,7 +297,7 @@ tfoot td{background:#1d2a21;color:#fff;font-weight:700;position:sticky;bottom:0}
           <button class="btn" id="dnXlsx" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.500 11 12 15.500 16.500 11M4 20h16"/></svg>Baixar Excel</button></div></div>
       <div class="tw" style="max-height:640px"><table id="tDown"></table></div>
       <div id="dnPag" style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;font-size:13px;color:var(--mut)"></div>
-      <p class="formula" style="margin:8px 4px 0">Uma linha para cada combinação de Região, Sindicato, Município, Supervisor, Técnico, Projeto e Atividade. TURMA = Projeto + Município + Atividade, com qualquer técnico (se o técnico muda, a turma continua a mesma): Início da Turma = primeira visita da turma e Última Visita da Turma = última visita da turma até o fim do período (em toda a base, não só no mês filtrado). Tempo do Técnico no Projeto = meses de calendário entre a primeira e a última visita do próprio técnico naquele projeto (máx. 24). Projeto + Município: Início do Projeto = primeira visita de qualquer técnico daquele projeto naquele município; Tempo de Projeto = meses desde essa data até a última visita da turma (a turma não tem data final). Região, Sindicato, Município, Supervisor, Técnico, Projeto e Atividade seguem os filtros acima. O CSV e o Excel levam todas as linhas, não só as da página.</p>
+      <p class="formula" style="margin:8px 4px 0">Uma linha para cada combinação de Região, Sindicato, Município, Supervisor, Técnico, Projeto e Atividade. TURMA = Projeto + Município + Atividade, com qualquer técnico (se o técnico muda, a turma continua a mesma): Início da Turma = primeira visita da turma e Última Visita da Turma = última visita da turma até o fim do período (em toda a base, não só no mês filtrado). Tempo do Técnico no Projeto = meses de calendário entre a primeira e a última visita do próprio técnico naquele projeto (máx. 24). Tempo do Projeto = meses desde a primeira visita de qualquer técnico daquele projeto naquele município até a última visita da turma (a turma não tem data final). Região, Sindicato, Município, Supervisor, Técnico, Projeto e Atividade seguem os filtros acima. O CSV e o Excel levam todas as linhas, não só as da página.</p>
     </div>
   </section>
   <section class="painel" id="p-conf">
@@ -824,7 +825,7 @@ function tecInCsv(){
 }
 $('tiDias').onchange=carregaTecIn;$('tiSeguir').onchange=carregaTecIn;$('tiBusca').oninput=tecInTabela;$('tiCsv').onclick=tecInCsv;
 /* ===== Aba Download: tabela Região, Sindicato, Município, Supervisor, Técnico, Mês, Projeto, Atividade, Data inicial e final ===== */
-const DN_COLS=[['regiao','Região'],['sindicato','Sindicato'],['municipio','Município'],['supervisor','Supervisor'],['tecnico','Técnico'],['projeto','Projeto'],['atividade','Atividade'],['data_inicial','Início da Turma'],['data_final','Última Visita da Turma'],['meses','Tempo do Técnico no Projeto'],['data_inicial_turma','Início do Projeto'],['meses_turma','Tempo de Projeto']];
+const DN_COLS=[['regiao','Região'],['sindicato','Sindicato'],['municipio','Município'],['supervisor','Supervisor'],['tecnico','Técnico'],['projeto','Projeto'],['atividade','Atividade'],['data_inicial','Início da Turma'],['data_final','Última Visita da Turma'],['meses','Tempo do Técnico no Projeto'],['meses_turma','Tempo do Projeto']];
 const DN_POR_PAG=100;
 let DN=[],dnOrd=['regiao',1],dnPag=0,dnSeq=0,dnChave='',dnPend='',dnTotalBase=0,dnCortou=false;
 const dnMes=m=>m?m.slice(5,7)+'/'+m.slice(0,4):'';
