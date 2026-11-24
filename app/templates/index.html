@@ -510,7 +510,7 @@ function desenhaSupTec(){
   if(!dados)return;
   if(supSel&&!dados.por_supervisor.some(r=>r.supervisor===supSel))supSel=null;
   barraH('gSup',dados.por_supervisor,'supervisor','visitas','Visitas',{cor:r=>(!supSel||r.supervisor===supSel)?'#2f7d4f':'#bcd8c5',click:r=>selSup(r.supervisor)});
-  const tt=supSel?dados.por_tecnico.filter(doSup):dados.por_tecnico;
+  const tt=(supSel?dados.por_tecnico.filter(doSup):dados.por_tecnico.slice()).sort((a,b)=>b.visitas-a.visitas||String(a.tecnico).localeCompare(b.tecnico));
   barraH('gTec',tt.slice(0,15),'tecnico','visitas','Visitas');
   const h=$('gTec').closest('.graf').querySelector('h2');
   if(h)h.textContent=supSel?`Técnicos de ${titulo(supSel)} com mais visitas (${Math.min(15,tt.length)})`:'15 técnicos com mais visitas';
